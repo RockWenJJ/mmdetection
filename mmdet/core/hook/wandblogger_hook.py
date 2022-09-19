@@ -369,7 +369,8 @@ class MMDetWandbHook(WandbLoggerHook):
             data_ann = self.val_dataset.get_ann_info(idx)
             bboxes = data_ann['bboxes']
             labels = data_ann['labels']
-            masks = data_ann.get('masks', None)
+            # masks = data_ann.get('masks', None)
+            masks = None # disable masks
 
             # Get dict of bounding boxes to be logged.
             assert len(bboxes) == len(labels)
