@@ -13,7 +13,7 @@ data = dict(
     train=dict(classes=classes),
     val=dict(classes=classes),
     test=dict(classes=classes))
-
+# cfg_dict = './faster_rcnn_r50_fpn_1x_duor.py'
 checkpoint_config = dict(  # Config to set the checkpoint hook, Refer to https://github.com/open-mmlab/mmcv/blob/master/mmcv/runner/hooks/checkpoint.py for implementation.
     interval=5)  # The save interval is 1
 log_config = dict(  # config to register logger hook
