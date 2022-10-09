@@ -1,4 +1,47 @@
-# dataset settings
+_base_ = [
+    '../_base_/models/faster_rcnn_r50_fpn.py',
+    '../_base_/datasets/duoe_detection.py',
+    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
+]
+classes = ('holothurian', 'echinus', 'scallop', 'starfish')
+
+model = dict(
+    roi_head=dict(
+        bbox_head=dict(num_classes=4)))
+
+data = dict(
+    train=dict(classes=classes),
+    val=dict(classes=classes),
+    test=dict(classes=classes))
+# cfg_dict = './faster_rcnn_r50_fpn_1x_duor.py'
+checkpoint_config = dict(  # Config to set the checkpoint hook, Refer to https://github.com/open-mmlab/mmcv/blob/master/mmcv/runner/hooks/checkpoint.py for implementation.
+    interval=5)  # The save interval is 1
+log_config = dict(  # config to register logger hook
+    interval=50,  # Interval to print the log
+    hooks=[
+        # dict(type='EvalHook', by_epoch=False),
+        dict(type='TextLoggerHook'),
+        dict(type='TensorboardLoggerHook'),
+        dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
+             interval=50,
+             init_kwargs={'project': "DUO-Detection", # Project name in WandB
+                          'name': 'faster_rcnn_r50_fpn_50e_duoe_norandomcrop'},
+             log_checkpoint=True,
+             num_eval_images=100,
+             bbox_score_thr=0.3,
+             ),
+    ])
+
+# overwrite schedule
+lr_config = dict(
+    policy='step',
+    warmup='linear',
+    warmup_iters=1000,
+    warmup_ratio=0.001,
+    step=[20, 48])
+runner = dict(type='EpochBasedRunner', max_epochs=50)
+
+# overwrite dataset config
 dataset_type = 'CocoDataset'
 data_root = 'data/duo_enhanced/'
 img_norm_cfg = dict(
@@ -8,12 +51,12 @@ img_size = (256, 256)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='RandomCrop',
-        crop_type='absolute_range',
-        crop_size=img_size,
-        recompute_bbox=True,
-        allow_negative_crop=True),
-    # dict(type='Resize', img_scale=img_scale, keep_ratio=False),
+    # dict(type='RandomCrop',
+    #     crop_type='absolute_range',
+    #     crop_size=img_size,
+    #     recompute_bbox=True,
+    #     allow_negative_crop=True),
+    dict(type='Resize', img_scale=img_size, keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
@@ -47,7 +90,7 @@ test_pipeline = [
 ]
 data = dict(
     samples_per_gpu=4,
-    workers_per_gpu=2,
+    workers_per_gpu=0,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train.json',
