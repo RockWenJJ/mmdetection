@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/models/faster_rcnn_r50_fpn.py',
-    '../_base_/datasets/duor_detection.py',
+    '../_base_/datasets/duoe_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
 classes = ('holothurian', 'echinus', 'scallop', 'starfish')
@@ -25,7 +25,7 @@ log_config = dict(  # config to register logger hook
         dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
              interval=50,
              init_kwargs={'project': "DUO-Detection", # Project name in WandB
-                          'name': 'duor'},
+                          'name': 'duogl_norandomcrop'},
              log_checkpoint=True,
              num_eval_images=100,
              bbox_score_thr=0.3,
@@ -33,10 +33,6 @@ log_config = dict(  # config to register logger hook
     ])
 
 # overwrite schedule
-# optimizer
-optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
-optimizer_config = dict(grad_clip=None)
-# default decay ratio: gamma:0.1, min_lr: None
 lr_config = dict(
     policy='step',
     warmup='linear',
@@ -49,7 +45,7 @@ runner = dict(type='EpochBasedRunner', max_epochs=50)
 # overwrite dataset config
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = 'data/duo_resized/'
+data_root = 'data/duo_enhanced/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 img_scale = (512, 288)
@@ -58,7 +54,7 @@ train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    dict(type='RandomCrop',
+    dict(type='CenterCrop',
          crop_type='absolute',
          crop_size=crop_size,
          recompute_bbox=True,

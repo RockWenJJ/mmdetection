@@ -25,7 +25,7 @@ log_config = dict(  # config to register logger hook
         dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
              interval=50,
              init_kwargs={'project': "DUO-Detection", # Project name in WandB
-                          'name': 'duor'},
+                          'name': 'duogl_100e'},
              log_checkpoint=True,
              num_eval_images=100,
              bbox_score_thr=0.3,
@@ -42,14 +42,14 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[20, 48])
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+    step=[30, 60, 95])
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 
 # overwrite dataset config
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = 'data/duo_resized/'
+data_root = 'data/duo_glnet/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 img_scale = (512, 288)

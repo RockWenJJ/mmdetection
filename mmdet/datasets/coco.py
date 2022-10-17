@@ -473,7 +473,7 @@ class CocoDataset(CustomDataset):
                         'does not change the overall mAP calculation.',
                         UserWarning)
                 coco_det = coco_gt.loadRes(predictions)
-                coco_gt = coco_gt.loadRes(gts) if gts is not None else coco_gt
+                # coco_gt = coco_gt.loadRes(gts) if gts is not None else coco_gt
             except IndexError:
                 print_log(
                     'The testing results of the whole dataset is empty.',

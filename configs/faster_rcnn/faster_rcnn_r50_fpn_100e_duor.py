@@ -25,7 +25,7 @@ log_config = dict(  # config to register logger hook
         dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
              interval=50,
              init_kwargs={'project': "DUO-Detection", # Project name in WandB
-                          'name': 'duor'},
+                          'name': 'duor_100e'},
              log_checkpoint=True,
              num_eval_images=100,
              bbox_score_thr=0.3,
@@ -42,8 +42,8 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[20, 48])
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+    step=[30, 60, 95])
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 
 # overwrite dataset config

@@ -33,6 +33,10 @@ log_config = dict(  # config to register logger hook
     ])
 
 # overwrite schedule
+# optimizer
+optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
+optimizer_config = dict(grad_clip=None)
+# default decay ratio: gamma:0.1, min_lr: None
 lr_config = dict(
     policy='step',
     warmup='linear',
@@ -107,4 +111,4 @@ data = dict(
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
         pipeline=test_pipeline))
-evaluation = dict(interval=1, metric='bbox')
+evaluation = dict(interval=5, metric='bbox')
