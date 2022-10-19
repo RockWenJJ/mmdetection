@@ -2,11 +2,14 @@ import cv2
 import json
 import os
 from tqdm import tqdm
+import numpy as np
 
-input_ann_file = '/mnt/03_Data/DUO/DUO_glnet/annotations/instances_test.json'
-out_ann_file = '/mnt/03_Data/DUO/DUO_glnet/annotations/instances_test_crop256x256.json'
-input_img_dir = '/mnt/03_Data/DUO/DUO_glnet/images/test'
-out_img_dir = '/mnt/03_Data/DUO/DUO_glnet/images/test_crop256x256'
+
+
+input_ann_file = '/mnt/03_Data/DUO/DUO_resized/annotations/instances_test.json'
+out_ann_file = '/mnt/03_Data/DUO/DUO_resized/annotations/instances_test_crop256x256.json'
+input_img_dir = '/mnt/03_Data/DUO/DUO_resized/images/test'
+out_img_dir = '/mnt/03_Data/DUO/DUO_resized/images/test_crop256x256'
 ori_shape = (288, 512) # h, w
 crop_size = (256, 256)
 margin_h, margin_w = 288 - 256, 512 - 256
@@ -34,16 +37,24 @@ for ann_info in ann_file['annotations']:
     
     # parse segmentation
     segmentation = []
+    ignore = False
     for i, seg in enumerate(ann_info['segmentation']):
         pt = seg - crop_x1 if i//2==0 else seg - crop_y1
         segmentation.append(pt)
-        ignore = False
-        ignore = True if (pt < 0 or pt >= crop_size[1]) and i//2==0 else ignore
-        ignore = True if (pt < 0 or pt >= crop_size[0]) and i//2!=0 else ignore
+        # ignore = True if (pt < 0 or pt >= crop_size[1]) and i//2==0 else ignore
+        # ignore = True if (pt < 0 or pt >= crop_size[0]) and i//2!=0 else ignore
     
     # parse bbox
     ori_bbox = ann_info['bbox']
-    bbox = [ori_bbox[0] - crop_x1, ori_bbox[1] - crop_y1] + ori_bbox[2:]
+    x1 = int(np.clip(ori_bbox[0] - crop_x1, 0, crop_size[1]-1))
+    y1 = int(np.clip(ori_bbox[1] - crop_y1, 0, crop_size[0]-1))# + ori_bbox[2:]
+    x2 = int(np.clip(ori_bbox[0] - crop_x1 + ori_bbox[2], 0, crop_size[1]-1))
+    y2 = int(np.clip(ori_bbox[1] - crop_y1 + ori_bbox[3], 0, crop_size[0]-1))
+    
+    w, h = x2 - x1, y2 - y1
+    ignore = True if (w<=5 or h<=5) else ignore # ignore too small objects
+    bbox = [x1, y1, w, h]
+    
     
     if not ignore:
         new_ann_info['segmentation'] = segmentation
@@ -59,10 +70,10 @@ out = dict(images=img_infos,
 json.dump(out, open(out_ann_file, 'w'))
 
 
-## crop images
-imgs = os.listdir(input_img_dir)
-os.makedirs(out_img_dir, exist_ok=True)
-for img in tqdm(imgs):
-    im = cv2.imread(os.path.join(input_img_dir, img))
-    out_img = im[crop_y1:crop_y2, crop_x1:crop_x2, ...]
-    cv2.imwrite(os.path.join(out_img_dir, img), out_img)
+# ## crop images
+# imgs = os.listdir(input_img_dir)
+# os.makedirs(out_img_dir, exist_ok=True)
+# for img in tqdm(imgs):
+#     im = cv2.imread(os.path.join(input_img_dir, img))
+#     out_img = im[crop_y1:crop_y2, crop_x1:crop_x2, ...]
+#     cv2.imwrite(os.path.join(out_img_dir, img), out_img)

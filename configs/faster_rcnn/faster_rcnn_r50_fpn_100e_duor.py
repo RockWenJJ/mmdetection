@@ -92,7 +92,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=8,
-    workers_per_gpu=4,
+    workers_per_gpu=0,
     train=dict(
         type=dataset_type,
         classes=classes,
@@ -111,4 +111,4 @@ data = dict(
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
         pipeline=test_pipeline))
-evaluation = dict(interval=5, metric='bbox')
+evaluation = dict(interval=5, metric='bbox', classwise=True)
