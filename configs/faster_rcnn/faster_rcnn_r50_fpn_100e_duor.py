@@ -22,14 +22,14 @@ log_config = dict(  # config to register logger hook
         # dict(type='EvalHook', by_epoch=False),
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook'),
-        dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
-             interval=50,
-             init_kwargs={'project': "DUO-Detection", # Project name in WandB
-                          'name': 'duor_100e'},
-             log_checkpoint=True,
-             num_eval_images=100,
-             bbox_score_thr=0.3,
-             ),
+        # dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
+        #      interval=50,
+        #      init_kwargs={'project': "DUO-Detection", # Project name in WandB
+        #                   'name': 'duor_100e'},
+        #      log_checkpoint=True,
+        #      num_eval_images=100,
+        #      bbox_score_thr=0.3,
+        #      ),
     ])
 
 # overwrite schedule
@@ -96,8 +96,8 @@ data = dict(
     train=dict(
         type=dataset_type,
         classes=classes,
-        ann_file=data_root + 'annotations/instances_train.json',
-        img_prefix=data_root + 'images/train/',
+        ann_file=data_root + 'annotations/instances_test.json',
+        img_prefix=data_root + 'images/test/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
@@ -111,4 +111,4 @@ data = dict(
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
         pipeline=test_pipeline))
-evaluation = dict(interval=5, metric='bbox', classwise=True)
+evaluation = dict(interval=1, metric='bbox', classwise=True)

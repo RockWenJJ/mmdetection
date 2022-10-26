@@ -6,6 +6,7 @@ from mmcv.utils import Registry
 
 MODELS = Registry('models', parent=MMCV_MODELS)
 
+LAYERS = MODELS
 BACKBONES = MODELS
 NECKS = MODELS
 ROI_EXTRACTORS = MODELS
@@ -14,6 +15,9 @@ HEADS = MODELS
 LOSSES = MODELS
 DETECTORS = MODELS
 
+def build_layer(cfg):
+    '''BUILD layer.'''
+    return LAYERS.build(cfg)
 
 def build_backbone(cfg):
     """Build backbone."""

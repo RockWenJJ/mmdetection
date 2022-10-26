@@ -8,10 +8,11 @@ from .sync_random_size_hook import SyncRandomSizeHook
 from .wandblogger_hook import MMDetWandbHook
 from .yolox_lrupdater_hook import YOLOXLrUpdaterHook
 from .yolox_mode_switch_hook import YOLOXModeSwitchHook
+from .uie_wandb_logger_hook import UIEWandbLoggerHook
 
 __all__ = [
     'SyncRandomSizeHook', 'YOLOXModeSwitchHook', 'SyncNormHook',
     'ExpMomentumEMAHook', 'LinearMomentumEMAHook', 'YOLOXLrUpdaterHook',
     'CheckInvalidLossHook', 'SetEpochInfoHook', 'MemoryProfilerHook',
-    'MMDetWandbHook'
+    'MMDetWandbHook', 'UIEWandbLoggerHook'
 ]

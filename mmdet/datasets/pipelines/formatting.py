@@ -390,3 +390,51 @@ class WrapFieldsToLists:
 
     def __repr__(self):
         return f'{self.__class__.__name__}()'
+
+
+@PIPELINES.register_module()
+class SyreaFormatBundle(DefaultFormatBundle):
+    def __init__(self,
+                 img_to_float=True,
+                 pad_val=dict(img=0, masks=0, seg=255)):
+        super().__init__(img_to_float, pad_val)
+        self.img_to_float = img_to_float
+        self.pad_val = pad_val
+    
+    def __call__(self, results):
+        results = super().__call__(results)
+        if 'syn_num' in results:
+            syn_num = results['syn_num']
+            for i in range(syn_num):
+                # formatting syn_img
+                syn_img = results['syn_img%d' % i]
+                syn_img = np.ascontiguousarray(syn_img.transpose(2, 0, 1))
+                results['syn_img%d' % i] = DC(to_tensor(syn_img), stack=True)
+                
+                # formatting backscattering
+                if 'back%d' % i in results.keys():
+                    b = results['back%d' % i]
+                    b = np.ascontiguousarray(b.transpose(2, 0, 1))
+                    results['back%d' % i] = DC(to_tensor(b), stack=True)
+                
+                # formatting direct transmission
+                if 'direct%d' % i in results.keys():
+                    t = results['direct%d' % i]
+                    t = np.ascontiguousarray(t.transpose(2, 0, 1))
+                    results['direct%d' % i] = DC(to_tensor(t), stack=True)
+                
+                # formatting white balanced point
+                if 'wbalance%d' % i in results.keys():
+                    w = results['wbalance%d' % i]
+                    results['wbalance%d' % i] = DC(to_tensor(w), stack=True)
+            
+            if syn_num == 1:
+                results['input'] = results['syn_img0']
+        
+        if 'depth' in results:
+            # formatting white balanced point
+            d = results['depth']
+            # d = np.ascontiguousarray(d.transpose(2, 0, 1))
+            results['depth'] = DC(to_tensor(d), stack=True)
+        
+        return results
