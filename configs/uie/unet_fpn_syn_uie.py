@@ -34,15 +34,15 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[5, 70, 90])
+    step=[5, 70, 98])
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
 dataset_type = 'SynDataset'
 data_root = './data/synthesis/'
-# real_dataset_type = 'UWDataset'
-# real_root = './data/real/'
+real_dataset_type = 'UWDataset'
+real_root = './data/real/'
 # img_norm_cfg = dict(
 #     mean=[68.48, 125.32, 126.41], std=[34.50, 40.80, 41.77], to_rgb=True)
 img_norm_cfg = dict(
@@ -65,7 +65,7 @@ train_pipeline = [
          ])
 ]
 
-test_pipeline = [
+val_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
     dict(type='MultiScaleFlipAug',
@@ -80,9 +80,18 @@ test_pipeline = [
          ])
 ]
 
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='Normalize', **img_norm_cfg),
+    dict(type='Pad', size_divisor=32),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img'], meta_keys=('filename', 'ori_filename', 'ori_shape',
+                                                  'img_shape', 'img_norm_cfg'))
+]
+
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=4,
+    samples_per_gpu=8,
+    workers_per_gpu=8,
     train=dict(
         type=dataset_type,
         ann_file=data_root+'train_infos.json',
@@ -92,11 +101,11 @@ data = dict(
         type=dataset_type,
         ann_file=data_root + 'test_infos.json',
         img_prefix=data_root,
-        pipeline=test_pipeline),
+        pipeline=val_pipeline),
     test=dict(
-        type=dataset_type,
-        ann_file=data_root+'test_infos.json',
-        img_prefix=data_root,
+        type=real_dataset_type,
+        ann_file=real_root+'test_infos.json',
+        img_prefix=real_root,
         pipeline=test_pipeline)
 )
 

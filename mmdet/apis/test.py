@@ -78,6 +78,7 @@ def single_gpu_test(model,
     return results
 
 
+
 def multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False):
     """Test model with multiple gpus.
 

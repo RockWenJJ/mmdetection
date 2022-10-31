@@ -79,8 +79,8 @@ runner = dict(type='EpochBasedRunner', max_epochs=100)
 # dataset settings
 dataset_type = 'SynDataset'
 data_root = './data/synthesis/'
-# real_dataset_type = 'UWDataset'
-# real_root = './data/real/'
+real_dataset_type = 'UWDataset'
+real_root = './data/real/'
 # img_norm_cfg = dict(
 #     mean=[68.48, 125.32, 126.41], std=[34.50, 40.80, 41.77], to_rgb=True)
 img_norm_cfg = dict(
@@ -99,7 +99,7 @@ train_pipeline = [
     dict(type='Collect', keys=['img', 'input'])
 ]
 
-test_pipeline = [
+val_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
     dict(type='Resize', img_scale=(256, 256), keep_ratio=False),
@@ -108,6 +108,15 @@ test_pipeline = [
     # dict(type='Pad', size_divisor=32),
     dict(type='SyreaFormatBundle'),
     dict(type='Collect', keys=['img', 'input'])
+]
+
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='Normalize', **img_norm_cfg),
+    dict(type='Pad', size_divisor=32),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img'], meta_keys=('filename', 'ori_filename', 'ori_shape',
+                                                  'img_shape', 'img_norm_cfg'))
 ]
 
 data = dict(
@@ -122,11 +131,11 @@ data = dict(
         type=dataset_type,
         ann_file=data_root + 'test_infos.json',
         img_prefix=data_root,
-        pipeline=test_pipeline),
+        pipeline=val_pipeline),
     test=dict(
-        type=dataset_type,
-        ann_file=data_root+'test_infos.json',
-        img_prefix=data_root,
+        type=real_dataset_type,
+        ann_file=real_root+'test_infos.json',
+        img_prefix=real_root,
         pipeline=test_pipeline)
 )
 
