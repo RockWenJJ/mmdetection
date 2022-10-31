@@ -102,3 +102,12 @@ class UpsampleLayer(BaseModule):
     
     def forward(self, x):
         return self.up(x)
+    
+@LAYERS.register_module()
+class PixelshuffleLayer(BaseModule):
+    def __init__(self, in_ch=None, up_scale=2):
+        super().__init__()
+        self.up = nn.PixelShuffle(up_scale)
+    
+    def forward(self, x):
+        return self.up(x)
