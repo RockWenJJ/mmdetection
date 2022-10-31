@@ -2,9 +2,47 @@ _base_=['../_base_/models/unet_encoder_decoder_base.py',
         '../_base_/datasets/syrea_uie.py',
         '../_base_/schedules/schedule_20e.py',
         '../_base_/default_runtime.py']
-
+pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
     type='UNet',
+    backbone=dict(
+        _delete_=True,
+        type='SwinTransformer',
+        embed_dims=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=7,
+        mlp_ratio=4,
+        qkv_bias=True,
+        qk_scale=None,
+        drop_rate=0.,
+        attn_drop_rate=0.,
+        drop_path_rate=0.2,
+        patch_norm=True,
+        out_indices=(0, 1, 2, 3),
+        with_cp=False,
+        convert_weights=True,
+        init_cfg=dict(type='Pretrained', checkpoint=pretrained)),
+    neck=dict(
+        type='Decoder',
+        in_chs0=(768, 576, 384),
+        in_chs1=(384, 192, 96),
+        out_chs=(576, 384, 256),
+        kernel_sizes=(3, 3, 3),
+        strides=(1, 1, 1),
+        paddings=(1, 1, 1),
+        reflect_padding=False, # align with SwinTransformer
+        instance_norm=False, # align with SwinTransformer
+        out_indices=(0, 1, 2),
+        concat=True,
+        upsample_cfg=dict(type='UpsampleLayer', bilinear=False)),
+    head=dict(
+        type='BaseSwinHead',
+        in_ch=256,
+        instance_norm=False,
+        loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),
+        loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=1.),
+    ),
     multi_scales=False
 )
 
@@ -18,7 +56,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='SyreaNetUIE',
-                              name='unet_decoder_syn_uie_noise_221031')
+                              name='unet_swin_syn_uie_noise_221031')
              )
     ])
 

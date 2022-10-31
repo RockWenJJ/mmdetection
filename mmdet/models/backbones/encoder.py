@@ -53,4 +53,4 @@ class Encoder(BaseModule):
             x = layer(x)
             if i in self.out_indices:
                 outs.append(x)
-        return x, outs
+        return outs

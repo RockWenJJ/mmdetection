@@ -15,7 +15,8 @@ model = dict(
     ),
     neck=dict(
         type='Decoder',
-        in_chs=(512, 256, 128, 64),
+        in_chs0=(512, 256, 128, 64),
+        in_chs1=(512, 256, 128, 64),
         out_chs=(256, 128, 64, 64),
         kernel_sizes=(3, 3, 3, 3),
         strides=(1, 1, 1, 1),

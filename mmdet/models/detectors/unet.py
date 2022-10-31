@@ -43,7 +43,7 @@ class UNet(BaseModule):
             assert isinstance(img, (list, tuple)), "when multi_scale, "
         input_img = kwargs['input'][-1] if self.multi_scales else kwargs['input']
         
-        x, xs = self.forward_img(input_img)
+        xs = self.forward_img(input_img)
         
         losses = dict()
         images_dict = dict()
@@ -59,24 +59,24 @@ class UNet(BaseModule):
                     losses[k] = losses[k] + v if k in losses else v
             # losses.update(self.head.loss(x, img, img_metas))
         else:
-            images_dict['predict'] = x
+            images_dict['predict'] = xs[-1]
             images_dict['target'] = img
-            losses.update(self.head.loss(x, img, img_metas))
+            losses.update(self.head.loss(xs[-1], img, img_metas))
         
         return losses, images_dict
     
     def forward_test(self, img, img_metas=None, **kwargs):
         # input_img = kwargs['input']
         input_img = img
-        x, xs = self.forward_img(input_img)
+        xs = self.forward_img(input_img)
         # result = dict()
         # result['predict'] = x
-        return x
+        return xs[-1]
     
     def forward_dummy(self, img):
         '''Used for computing network flops and convert to onnx models'''
-        x, _ = self.forward_img(img)
-        return x
+        xs = self.forward_img(img)
+        return xs[-1]
     
     def train_step(self, data, optimizer):
         losses, images_dict = self(**data)
@@ -88,15 +88,17 @@ class UNet(BaseModule):
         return outputs
     
     def forward_img(self, img):
-        _, xs = self.backbone(img)
+        xs = self.backbone(img)
         xs.reverse()
-        x, xs = self.neck(xs)
+        xs = self.neck(xs)
         outs = []
         if self.multi_scales:
             for i, x in enumerate(xs):
                 outs.append(self.head(x))
+        else:
+            outs.append(self.head(xs[-1]))
         
-        return self.head(x), outs
+        return tuple(outs)
     
     def _parse_losses(self, losses):
         """Parse the raw outputs (losses) of the network.

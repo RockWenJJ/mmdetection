@@ -10,7 +10,8 @@ from ..builder import NECKS, build_layer, build_neck
 @NECKS.register_module()
 class Decoder(BaseModule):
     def __init__(self,
-                 in_chs,
+                 in_chs0,
+                 in_chs1,
                  out_chs,
                  kernel_sizes,
                  strides,
@@ -27,12 +28,15 @@ class Decoder(BaseModule):
         self.upsample_layers = []
         self.conv_layers = []
         conv_type = 'CIR' if instance_norm else 'CBR'
-        for i, (in_ch, out_ch, k, s, p) in enumerate(zip(in_chs, out_chs, kernel_sizes, strides, paddings)):
+        for i, (in_ch0, in_ch1, out_ch, k, s, p) in enumerate(zip(in_chs0, in_chs1, out_chs, kernel_sizes, strides, paddings)):
             conv_layer = []
-            upsample_cfg['in_ch'] = in_ch
+            upsample_cfg['in_ch'] = in_ch0
             upsample_layer = build_layer(upsample_cfg)
             if concat:
-                in_ch *= 2
+                in_ch = in_ch0 + in_ch1
+            else:
+                assert in_ch0 == in_ch1
+                in_ch = in_ch0
             conv_cfg = {'type': conv_type,
                         'in_ch': in_ch,
                         'out_ch': out_ch,
@@ -67,7 +71,7 @@ class Decoder(BaseModule):
             if i in self.out_indices:
                 outs.append(x)
         
-        return x, outs
+        return tuple(outs)
 
 
 @NECKS.register_module()
@@ -102,10 +106,10 @@ class FeaturePyramid(BaseModule):
             self.add_module(conv_name, conv)
     
     def forward(self, xs):
-        _, xs = self.decoder(xs)
+        xs = self.decoder(xs)
         outs = []
         for i, (xi, conv) in enumerate(zip(xs, self.convs)):
             x = conv(xi)
             if i in self.out_indices:
                 outs.append(x)
-        return x, outs
+        return tuple(outs)

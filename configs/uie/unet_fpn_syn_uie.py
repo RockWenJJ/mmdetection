@@ -100,5 +100,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-# checkpoint_config = dict(interval=5)
+checkpoint_config = dict(interval=5)
 evaluation = dict(type='UieEvalHook', interval=2)
