@@ -25,7 +25,7 @@ def single_gpu_evaluate(model,
         for k, v in losses.items():
             results[k] += v.detach().cpu().numpy()
         
-        img_metas = data['img_metas'].data[0]
+        img_metas = data['img_metas'].data[0] if not isinstance(data['img_metas'], list) else data['img_metas'][0].data[0]
         pred_tensor = images_dict['predict']
         targ_tensor = images_dict['target']
         

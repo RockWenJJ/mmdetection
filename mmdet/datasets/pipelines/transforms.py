@@ -3117,3 +3117,44 @@ class CopyPaste:
         repr_str += f'mask_occluded_thr={self.mask_occluded_thr}, '
         repr_str += f'selected={self.selected}, '
         return repr_str
+
+
+@PIPELINES.register_module()
+class RandomNoise:
+    def __init__(self, ratio, noise_types=['gaussian'], mean=0., sigma=10.):
+        self.ratio = ratio
+        self.noise_types = noise_types
+        self.mean = mean
+        self.sigma = sigma
+    
+    def _gaussian_noise_(self, results):
+        img = results['syn_img0']
+        h, w, c = img.shape
+        gauss = np.random.normal(self.mean, self.sigma, (h, w, c))
+        noisy_img = img + gauss
+        noisy_img = np.clip(noisy_img, 0, 255).astype(np.uint8)
+        results['syn_img0'] = noisy_img
+        return results
+    
+    def _poisson_noise_(self, results):
+        img = results['syn_img0']
+        h, w, c = img.shape
+        poisson = np.random.poisson(self.sigma, (h, w, c))
+        noisy_img = np.clip(poisson + img, 0, 255).astype(np.uint8)
+        results['syn_img0'] = noisy_img
+        return results
+    
+    def __call__(self, results):
+        rand = np.random.random()
+        if rand < self.ratio:
+            noise_type = random.choice(self.noise_types)
+            if noise_type.lower() == 'gaussian':
+                results = self._gaussian_noise_(results)
+            elif noise_type.lower() == 'poisson':
+                results = self._poisson_noise_(results)
+            else:
+                raise NotImplementedError
+            return results
+        else:
+            return results
+    

@@ -1,11 +1,11 @@
-_base_=['../_base_/models/unet_encoder_decoder_base.py',
+_base_=['../_base_/models/unet_encoder_fpn_base.py',
         '../_base_/datasets/syrea_uie.py',
         '../_base_/schedules/schedule_20e.py',
         '../_base_/default_runtime.py']
 
 model = dict(
     type='UNet',
-    multi_scales=False
+    multi_scales=True
 )
 
 log_config = dict(
@@ -18,7 +18,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='SyreaNetUIE',
-                              name='unet_decoder_syn_uie_noise_221031')
+                              name='unet_fpn_syn_uie_221026')
              )
     ])
 
@@ -34,7 +34,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[5, 70, 98])
+    step=[5, 70, 90])
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
@@ -53,28 +53,36 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
-    dict(type='Resize', img_scale=(256, 256), keep_ratio=False),
-    dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
-    dict(type='RandomFlip', flip_ratio=0.5),
-    dict(type='Normalize', **img_norm_cfg),
-    dict(type='SyreaFormatBundle'),
-    dict(type='Collect', keys=['img', 'input'])
+    dict(type='MultiScaleFlipAug',
+         img_scale=[(32, 32), (64, 64), (128, 128), (256, 256)],
+         flip=False,
+         transforms=[
+             dict(type='Resize', img_scale=(256, 256), keep_ratio=False),
+             dict(type='RandomFlip', flip_ratio=0.5),
+             dict(type='Normalize', **img_norm_cfg),
+             dict(type='SyreaFormatBundle'),
+             dict(type='Collect', keys=['img', 'input'])
+         ])
 ]
 
 test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
-    dict(type='Resize', img_scale=(256, 256), keep_ratio=False),
-    dict(type='RandomFlip', flip_ratio=0.),
-    dict(type='Normalize', **img_norm_cfg),
-    # dict(type='Pad', size_divisor=32),
-    dict(type='SyreaFormatBundle'),
-    dict(type='Collect', keys=['img', 'input'])
+    dict(type='MultiScaleFlipAug',
+         img_scale=[(32, 32), (64, 64), (128, 128), (256, 256)],
+         flip=False,
+         transforms=[
+             dict(type='Resize', img_scale=(256, 256), keep_ratio=False),
+             dict(type='RandomFlip', flip_ratio=0.),
+             dict(type='Normalize', **img_norm_cfg),
+             dict(type='SyreaFormatBundle'),
+             dict(type='Collect', keys=['img', 'input'])
+         ])
 ]
 
 data = dict(
-    samples_per_gpu=8,
-    workers_per_gpu=8,
+    samples_per_gpu=4,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         ann_file=data_root+'train_infos.json',
