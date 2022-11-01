@@ -18,7 +18,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='SyreaNetUIE',
-                              name='unet_decoder_syn_uie_noise_221031')
+                              name='unet_decoder_syn_uie_512_221101')
              )
     ])
 
@@ -34,7 +34,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[5, 70, 98])
+    step=[5, 98])
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
@@ -53,7 +53,7 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
-    dict(type='Resize', img_scale=(256, 256), keep_ratio=False),
+    dict(type='Resize', img_scale=(512, 512), keep_ratio=False),
     dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
@@ -64,7 +64,7 @@ train_pipeline = [
 val_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
-    dict(type='Resize', img_scale=(256, 256), keep_ratio=False),
+    dict(type='Resize', img_scale=(512, 512), keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.),
     dict(type='Normalize', **img_norm_cfg),
     # dict(type='Pad', size_divisor=32),
