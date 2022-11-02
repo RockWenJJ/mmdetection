@@ -7,7 +7,7 @@ model = dict(
     type='UNet',
     backbone=dict(
         _delete_=True,
-        type='SwinTransformer',
+        type='SwinUIE',
         embed_dims=96,
         depths=[2, 2, 6, 2],
         num_heads=[3, 6, 12, 24],
@@ -22,7 +22,8 @@ model = dict(
         out_indices=(0, 1, 2, 3),
         with_cp=False,
         convert_weights=True,
-        init_cfg=dict(type='Pretrained', checkpoint=pretrained)),
+        # init_cfg=dict(type='Pretrained', checkpoint=pretrained)
+    ),
     neck=dict(
         type='Decoder',
         in_chs0=(768, 576, 384),
@@ -37,7 +38,7 @@ model = dict(
         concat=True,
         upsample_cfg=dict(type='UpsampleLayer', bilinear=False)),
     head=dict(
-        type='BaseSwinHead',
+        type='BaseSwinHead2',
         in_ch=256,
         instance_norm=False,
         loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),

@@ -91,3 +91,56 @@ class BaseSwinHead(BaseModule):
         loss_mse, loss_ssim = self.loss_single(preds, gts)
         
         return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
+
+
+@HEADS.register_module()
+class BaseSwinHead2(BaseModule):
+    def __init__(self,
+                 in_ch,
+                 out_ch=3,
+                 kernel_size=1,
+                 stride=1,
+                 padding=0,
+                 instance_norm=True,
+                 up_scale=4,
+                 loss_mse_cfg=dict(type='MSELoss', loss_weight=1.0),
+                 loss_ssim_cfg=None):
+        super().__init__()
+        conv_type = 'CIR' if instance_norm else 'CBR'
+        conv_cfg = {'type': conv_type,
+                    'in_ch': in_ch,
+                    'out_ch': out_ch,
+                    'kernel_size': kernel_size,
+                    'stride': stride,
+                    'padding': padding}
+        # self.head = build_layer(conv_cfg)
+        self.pre = nn.Conv2d(in_ch, in_ch, kernel_size=kernel_size)
+        self.up = nn.PixelShuffle(up_scale)
+        self.conv = nn.Conv2d(in_ch // (up_scale * up_scale), in_ch // (up_scale * up_scale), kernel_size=kernel_size)
+        self.up2 = nn.PixelShuffle(2)
+        
+        
+        self.head = nn.Conv2d(in_ch // (up_scale * up_scale * 4), out_ch, kernel_size=kernel_size)
+        
+        self.add_module('pre', self.pre)
+        self.add_module('up', self.up)
+        self.add_module('conv', self.conv)
+        self.add_module('up2', self.up2)
+        self.add_module('head', self.head)
+        
+        self.loss_mse = build_loss(loss_mse_cfg)
+        self.loss_ssim = build_loss(loss_ssim_cfg)
+    
+    def forward(self, x):
+        x = self.up2(self.conv(self.up(self.pre(x))))
+        return self.head(x)
+    
+    def loss_single(self, pred, gt):
+        loss_mse = self.loss_mse(pred, gt)
+        loss_ssim = self.loss_ssim(pred, gt)
+        return loss_mse, loss_ssim
+    
+    def loss(self, preds, gts, img_metas):
+        loss_mse, loss_ssim = self.loss_single(preds, gts)
+        
+        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
