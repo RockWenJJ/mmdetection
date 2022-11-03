@@ -162,13 +162,17 @@ class BaseMultiConvHead(BaseModule):
         assert len(in_channels) == len(out_channels), 'in_channels length must be the same of out_channels length'
         self.layers = nn.ModuleList()
         for i, (in_ch, out_ch, k, s, p) in enumerate(zip(in_channels, out_channels, kernel_sizes, strides, paddings)):
-            conv_cfg = {'type': conv_type,
-                        'in_ch': in_ch,
-                        'out_ch': out_ch,
-                        'kernel_size': k,
-                        'stride': s,
-                        'padding': p}
-            self.layers.append(build_layer(conv_cfg))
+            if i < len(in_channels)-1:
+                conv_cfg = {'type': conv_type,
+                            'in_ch': in_ch,
+                            'out_ch': out_ch,
+                            'kernel_size': k,
+                            'stride': s,
+                            'padding': p}
+                self.layers.append(build_layer(conv_cfg))
+            else:
+                self.layers.append(nn.Conv2d(in_ch, out_ch, kernel_size=k, stride=s, padding=p))
+            
         self.add_module('layers', self.layers)
         
         self.loss_mse = build_loss(loss_mse_cfg)
