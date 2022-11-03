@@ -144,3 +144,47 @@ class BaseSwinHead2(BaseModule):
         loss_mse, loss_ssim = self.loss_single(preds, gts)
         
         return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
+
+
+@HEADS.register_module()
+class BaseMultiConvHead(BaseModule):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_sizes,
+                 strides,
+                 paddings,
+                 instance_norm=True,
+                 loss_mse_cfg=dict(type='MSELoss', loss_weight=1.0),
+                 loss_ssim_cfg=None):
+        super().__init__()
+        conv_type = 'CIR' if instance_norm else 'CBR'
+        assert len(in_channels) == len(out_channels), 'in_channels length must be the same of out_channels length'
+        self.layers = nn.ModuleList()
+        for i, (in_ch, out_ch, k, s, p) in enumerate(zip(in_channels, out_channels, kernel_sizes, strides, paddings)):
+            conv_cfg = {'type': conv_type,
+                        'in_ch': in_ch,
+                        'out_ch': out_ch,
+                        'kernel_size': k,
+                        'stride': s,
+                        'padding': p}
+            self.layers.append(build_layer(conv_cfg))
+        self.add_module('layers', self.layers)
+        
+        self.loss_mse = build_loss(loss_mse_cfg)
+        self.loss_ssim = build_loss(loss_ssim_cfg)
+    
+    def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+    
+    def loss_single(self, pred, gt):
+        loss_mse = self.loss_mse(pred, gt)
+        loss_ssim = self.loss_ssim(pred, gt)
+        return loss_mse, loss_ssim
+    
+    def loss(self, preds, gts, img_metas):
+        loss_mse, loss_ssim = self.loss_single(preds, gts)
+        
+        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)

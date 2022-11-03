@@ -25,8 +25,11 @@ def single_gpu_uie_test(model,
     prog_bar = mmcv.ProgressBar(len(dataset))
     
     for i, data in enumerate(data_loader):
-        with torch.no_grad():
-            result = model(return_loss=False, **data)
+        try:
+            with torch.no_grad():
+                result = model(return_loss=False, **data)
+        except Exception as e:
+            print(e)
         
         batch_size = 1
         if out_dir:
