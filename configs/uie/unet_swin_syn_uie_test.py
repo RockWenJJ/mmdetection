@@ -50,14 +50,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=1000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='SyreaNetUIE',
-        #                       name='unet_swin_syn_uie_512_221101')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=1000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='SyreaNetUIE',
+                              name='unet_swin_syn_uie_test')
+             )
     ])
 
 # overwrite schedule
@@ -140,4 +140,4 @@ data = dict(
 )
 
 checkpoint_config = dict(interval=5)
-evaluation = dict(type='UieEvalHook', interval=2)
+evaluation = dict(type='UieEvalHook', interval=5)
