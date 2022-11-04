@@ -57,7 +57,8 @@ class BaseSwinHead(BaseModule):
                  instance_norm=True,
                  up_scale=4,
                  loss_mse_cfg=dict(type='MSELoss', loss_weight=1.0),
-                 loss_ssim_cfg=None):
+                 loss_ssim_cfg=None,
+                 loss_cos_cfg=None):
         super().__init__()
         conv_type = 'CIR' if instance_norm else 'CBR'
         conv_cfg = {'type': conv_type,
@@ -77,6 +78,7 @@ class BaseSwinHead(BaseModule):
         
         self.loss_mse = build_loss(loss_mse_cfg)
         self.loss_ssim = build_loss(loss_ssim_cfg)
+        self.loss_cos = build_loss(loss_cos_cfg)
     
     def forward(self, x):
         x = self.up(self.pre(x))
@@ -84,13 +86,14 @@ class BaseSwinHead(BaseModule):
     
     def loss_single(self, pred, gt):
         loss_mse = self.loss_mse(pred, gt)
-        loss_ssim = self.loss_ssim(pred, gt)
-        return loss_mse, loss_ssim
+        loss_ssim = self.loss_ssim(pred, gt) if self.loss_ssim is not None else 0
+        loss_cos = self.loss_cos(pred, gt)
+        return loss_mse, loss_ssim, loss_cos
     
     def loss(self, preds, gts, img_metas):
-        loss_mse, loss_ssim = self.loss_single(preds, gts)
+        loss_mse, loss_ssim, loss_cos = self.loss_single(preds, gts)
         
-        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
+        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim, loss_cos=loss_cos)
 
 
 @HEADS.register_module()

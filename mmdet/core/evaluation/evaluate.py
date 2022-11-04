@@ -23,6 +23,8 @@ def single_gpu_evaluate(model,
             losses, images_dict = model(return_loss=True, **data)
         
         for k, v in losses.items():
+            if k not in results.keys():
+                results.setdefault(k, 0.)
             results[k] += v.detach().cpu().numpy()
         
         img_metas = data['img_metas'].data[0] if not isinstance(data['img_metas'], list) else data['img_metas'][0].data[0]

@@ -42,6 +42,7 @@ model = dict(
         instance_norm=False,
         loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),
         loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=1.),
+        loss_cos_cfg=dict(type='CosineLoss', loss_weight=1.)
     ),
     multi_scales=False
 )
@@ -56,7 +57,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='SyreaNetUIE',
-                              name='unet_swin_syn_uie_test')
+                              name='unet_swin_syn_uie_test_cos')
              )
     ])
 
@@ -73,7 +74,7 @@ lr_config = dict(
     warmup_iters=1000,
     warmup_ratio=0.001,
     step=[20, 98])
-runner = dict(type='EpochBasedRunner', max_epochs=100)
+runner = dict(type='EpochBasedRunner', max_epochs=200)
 
 # overwrite dataset config
 # dataset settings
