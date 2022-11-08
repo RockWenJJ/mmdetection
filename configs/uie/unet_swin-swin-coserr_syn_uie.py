@@ -22,23 +22,27 @@ model = dict(
         out_indices=(0, 1, 2, 3),
         with_cp=False,
         convert_weights=True,
-        init_cfg=dict(type='Pretrained', checkpoint=pretrained)),
+        init_cfg=dict(type='Pretrained', checkpoint=pretrained)
+    ),
     neck=dict(
-        type='Decoder',
-        in_chs0=(768, 576, 384),
-        in_chs1=(384, 192, 96),
-        out_chs=(576, 384, 256),
-        kernel_sizes=(3, 3, 3),
-        strides=(1, 1, 1),
-        paddings=(1, 1, 1),
-        reflect_padding=False, # align with SwinTransformer
-        instance_norm=False, # align with SwinTransformer
-        out_indices=(0, 1, 2),
-        concat=True,
-        upsample_cfg=dict(type='UpsampleLayer', bilinear=False)),
+        _delete_=True,
+        type='SwinNeck',
+        embed_dims=768,
+        depths=[2, 6, 2, 2],
+        num_heads=[24, 12, 6, 3],
+        window_size=7,
+        mlp_ratio=2,
+        qkv_bias=True,
+        qk_scale=None,
+        drop_rate=0.,
+        attn_drop_rate=0.,
+        drop_path_rate=0.2,
+        patch_norm=True,
+        out_indices=(0, 1, 2, 3),
+        with_cp=False),
     head=dict(
-        type='BaseSwinHead',
-        in_ch=256,
+        type='BaseHead',
+        in_ch=384,
         instance_norm=False,
         loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),
         loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=1.),
@@ -51,14 +55,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        dict(type='UIEWandbLoggerHook',
-             interval=50,
-             vis_interval=1000,
-             log_checkpoint=True,
-             log_checkpoint_metadata=True,
-             init_kwargs=dict(project='SyreaNetUIE',
-                              name='unet_swin_syn_uie_test_cos')
-             )
+        # dict(type='UIEWandbLoggerHook',
+        #      interval=50,
+        #      vis_interval=1000,
+        #      log_checkpoint=True,
+        #      log_checkpoint_metadata=True,
+        #      init_kwargs=dict(project='SyreaNetUIE',
+        #                       name='unet_swin-swin-coserr_syn_uie_221108')
+        #      )
     ])
 
 # overwrite schedule
@@ -73,8 +77,8 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[20, 98])
-runner = dict(type='EpochBasedRunner', max_epochs=200)
+    step=[5, 98])
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
@@ -125,7 +129,7 @@ data = dict(
     workers_per_gpu=8,
     train=dict(
         type=dataset_type,
-        ann_file=data_root+'test_infos.json',
+        ann_file=data_root+'train_infos.json',
         img_prefix=data_root,
         pipeline=train_pipeline),
     val=dict(
@@ -140,5 +144,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=5)
-evaluation = dict(type='UieEvalHook', interval=5)
+checkpoint_config = dict(interval=2)
+evaluation = dict(type='UieEvalHook', interval=2)
