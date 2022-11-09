@@ -136,7 +136,11 @@ class FasterUIE(TwoStageDetector):
         return det_results, losses, images_dict
 
     def forward_uie(self, xs):
-        xs.reverse()
+        if isinstance(xs, list):
+            xs.reverse()
+        else:
+            xs = list(xs)
+            xs.reverse()
         xs = self.uie_neck(xs)
         outs = []
         if self.uie_multi_scales:
