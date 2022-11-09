@@ -60,7 +60,7 @@ class UIEWandbLoggerHook(WandbLoggerHook):
         if self.every_n_iters(runner, self.vis_interval):
             img_dict = {f'{mode}/predicts': runner.outputs['images']['predict'].cpu().data,
                         f'{mode}/targets': runner.outputs['images']['target'].cpu().data,
-                        f'{mode}/synthesis': runner.outputs['images']['synthesis'].cpu().data}
+                        f'{mode}/input': runner.outputs['images']['input'].cpu().data}
             for k, v in img_dict.items():
                 img_dict[k] = self.wandb.Image(v)
             self.wandb.log(img_dict, step=self.get_iter(runner))

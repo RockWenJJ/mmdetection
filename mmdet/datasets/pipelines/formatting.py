@@ -213,7 +213,7 @@ class DefaultFormatBundle:
             dict: The result dict contains the data that is formatted with \
                 default bundle.
         """
-
+        
         if 'img' in results:
             img = results['img']
             if self.img_to_float is True and img.dtype == np.uint8:
@@ -229,6 +229,24 @@ class DefaultFormatBundle:
             img = np.ascontiguousarray(img.transpose(2, 0, 1))
             results['img'] = DC(
                 to_tensor(img), padding_value=self.pad_val['img'], stack=True)
+            
+        # transform cl_img
+        if 'cl_img' in results:
+            cl_img = results['cl_img']
+            if self.img_to_float is True and cl_img.dtype == np.uint8:
+                # Normally, image is of uint8 type without normalization.
+                # At this time, it needs to be forced to be converted to
+                # flot32, otherwise the model training and inference
+                # will be wrong. Only used for YOLOX currently .
+                cl_img = cl_img.astype(np.float32)
+            # add default meta keys
+            # results = self._add_default_meta_keys(results)
+            if len(cl_img.shape) < 3:
+                cl_img = np.expand_dims(cl_img, -1)
+            cl_img = np.ascontiguousarray(cl_img.transpose(2, 0, 1))
+            results['cl_img'] = DC(
+                to_tensor(cl_img), padding_value=self.pad_val['img'], stack=True)
+            
         for key in ['proposals', 'gt_bboxes', 'gt_bboxes_ignore', 'gt_labels']:
             if key not in results:
                 continue

@@ -17,6 +17,7 @@ from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
 from .syn_dataset import SynDataset
 from .uw_dataset import UWDataset
+from .uw_coco_dataset import UwCocoDataset
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'DeepFashionDataset',
@@ -26,5 +27,5 @@ __all__ = [
     'ClassBalancedDataset', 'WIDERFaceDataset', 'DATASETS', 'PIPELINES',
     'build_dataset', 'replace_ImageToTensor', 'get_loading_pipeline',
     'NumClassCheckHook', 'CocoPanopticDataset', 'MultiImageMixDataset',
-    'OpenImagesDataset', 'OpenImagesChallengeDataset', 'SynDataset', 'UWDataset'
+    'OpenImagesDataset', 'OpenImagesChallengeDataset', 'SynDataset', 'UWDataset', 'UwCocoDataset'
 ]

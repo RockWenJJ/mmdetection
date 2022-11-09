@@ -47,7 +47,7 @@ class UNet(BaseModule):
         
         losses = dict()
         images_dict = dict()
-        images_dict['synthesis'] = input_img
+        images_dict['input'] = input_img
         
         if self.multi_scales:
             assert len(xs) == len(img)

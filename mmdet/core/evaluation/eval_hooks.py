@@ -141,7 +141,7 @@ class DistEvalHook(BaseDistEvalHook):
 
 
 class UieEvalHook(BaseEvalHook):
-    def __init(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.latest_results = None
     
@@ -155,9 +155,9 @@ class UieEvalHook(BaseEvalHook):
         '''perform evaluation and save ckpt'''
         if not self._should_evaluate(runner):
             return
-        from .evaluate import single_gpu_evaluate
+        from .evaluate import single_gpu_uie_evaluate
         
-        results = single_gpu_evaluate(runner.model, self.dataloader)
+        results = single_gpu_uie_evaluate(runner.model, self.dataloader)
         self.latest_results = results
         
         runner.log_buffer.output['eval_iter_num'] = len(self.dataloader)
@@ -168,8 +168,45 @@ class UieEvalHook(BaseEvalHook):
         
         # if self.save_best:
         #     self._save_ckpt(runner, 'ssim')
-        model_name = f'epoch_{runner.epoch + 1}.pth'
-        runner.save_checkpoint(
-            self.out_dir,
-            filename_tmpl=model_name,
-            create_symlink=False)
+        # model_name = f'epoch_{runner.epoch + 1}.pth'
+        # runner.save_checkpoint(
+        #     self.out_dir,
+        #     filename_tmpl=model_name,
+        #     create_symlink=False)
+
+
+class UieDetEvalHook(EvalHook):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.latest_results = None
+    
+    def before_train_epoch(self, runner):
+        super().before_train_epoch(runner)
+    
+    def before_train_iter(self, runner):
+        super().before_train_iter(runner)
+    
+    def _do_evaluate(self, runner):
+        '''perform evaluation and save ckpt'''
+        if not self._should_evaluate(runner):
+            return
+        from .evaluate import single_gpu_uie_det_evaluate
+        
+        det_results, uie_results = single_gpu_uie_det_evaluate(runner.model, self.dataloader)
+        self.latest_results = det_results
+        runner.log_buffer.output['eval_iter_num'] = len(self.dataloader)
+        for k, v in uie_results.items():
+            runner.log_buffer.output[k] = v
+            
+        key_score = self.evaluate(runner, det_results)
+        runner.log_buffer.ready = True
+        
+        # key_score = self.evaluate(runner, results)
+        
+        # if self.save_best:
+        #     self._save_ckpt(runner, 'ssim')
+        # model_name = f'epoch_{runner.epoch + 1}.pth'
+        # runner.save_checkpoint(
+        #     self.out_dir,
+        #     filename_tmpl=model_name,
+        #     create_symlink=False)

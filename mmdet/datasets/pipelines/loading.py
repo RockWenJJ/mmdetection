@@ -76,6 +76,18 @@ class LoadImageFromFile:
         results['img_shape'] = img.shape
         results['ori_shape'] = img.shape
         results['img_fields'] = ['img']
+        
+        # load clear image
+        if 'cl_prefix' in results.keys() and results['cl_prefix'] is not None:
+            cl_filename = osp.join(results['cl_prefix'],
+                                   results['img_info']['filename'])
+            cl_img_bytes = self.file_client.get(cl_filename)
+            cl_img = mmcv.imfrombytes(cl_img_bytes, flag=self.color_type, channel_order=self.channel_order)
+            if self.to_float32:
+                cl_img = cl_img.astype(np.float32)
+            results['cl_img'] = cl_img
+            results['img_fields'].append('cl_img')
+        
         return results
 
     def __repr__(self):

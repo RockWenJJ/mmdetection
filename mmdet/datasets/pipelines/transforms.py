@@ -799,14 +799,23 @@ class RandomCrop:
                 updated according to crop size.
         """
         assert crop_size[0] > 0 and crop_size[1] > 0
+        # make sure the same crop region for all img_fields
+        img = results['img']
+        margin_h = max(img.shape[0] - crop_size[0], 0)
+        margin_w = max(img.shape[1] - crop_size[1], 0)
+        offset_h = np.random.randint(0, margin_h + 1)
+        offset_w = np.random.randint(0, margin_w + 1)
+        crop_y1, crop_y2 = offset_h, offset_h + crop_size[0]
+        crop_x1, crop_x2 = offset_w, offset_w + crop_size[1]
+        
         for key in results.get('img_fields', ['img']):
             img = results[key]
-            margin_h = max(img.shape[0] - crop_size[0], 0)
-            margin_w = max(img.shape[1] - crop_size[1], 0)
-            offset_h = np.random.randint(0, margin_h + 1)
-            offset_w = np.random.randint(0, margin_w + 1)
-            crop_y1, crop_y2 = offset_h, offset_h + crop_size[0]
-            crop_x1, crop_x2 = offset_w, offset_w + crop_size[1]
+            # margin_h = max(img.shape[0] - crop_size[0], 0)
+            # margin_w = max(img.shape[1] - crop_size[1], 0)
+            # offset_h = np.random.randint(0, margin_h + 1)
+            # offset_w = np.random.randint(0, margin_w + 1)
+            # crop_y1, crop_y2 = offset_h, offset_h + crop_size[0]
+            # crop_x1, crop_x2 = offset_w, offset_w + crop_size[1]
 
             # crop the image
             img = img[crop_y1:crop_y2, crop_x1:crop_x2, ...]

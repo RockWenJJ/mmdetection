@@ -9,7 +9,7 @@ from mmcv.runner import (DistSamplerSeedHook, EpochBasedRunner,
                          Fp16OptimizerHook, OptimizerHook, build_runner,
                          get_dist_info)
 
-from mmdet.core import DistEvalHook, EvalHook, UieEvalHook, build_optimizer
+from mmdet.core import DistEvalHook, EvalHook, UieEvalHook, UieDetEvalHook, build_optimizer
 from mmdet.datasets import (build_dataloader, build_dataset,
                             replace_ImageToTensor)
 from mmdet.utils import (build_ddp, build_dp, compat_cfg,
@@ -227,7 +227,12 @@ def train_detector(model,
         eval_cfg['by_epoch'] = cfg.runner['type'] != 'IterBasedRunner'
         if eval_cfg.get('type', None):
             type = eval_cfg.pop('type')
-            eval_hook = UieEvalHook
+            if type == 'UieEvalHook':
+                eval_hook = UieEvalHook
+            elif type == 'UieDetEvalHook':
+                eval_hook = UieDetEvalHook
+            else:
+                raise NotImplementedError
         else:
             eval_hook = DistEvalHook if distributed else EvalHook
         # In this PR (https://github.com/open-mmlab/mmcv/pull/1193), the
