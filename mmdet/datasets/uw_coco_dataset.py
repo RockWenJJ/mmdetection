@@ -20,6 +20,7 @@ class UwCocoDataset(CocoDataset):
                  classes=None,
                  data_root=None,
                  img_prefix='',
+                 cl_prefix='_clear',
                  seg_prefix=None,
                  proposal_file=None,
                  test_mode=False,
@@ -38,9 +39,10 @@ class UwCocoDataset(CocoDataset):
                          file_client_args=file_client_args)
         
         # self.img_prefix = os.path.join(img_prefix, 'image')
-        self.cl_prefix = self.img_prefix + '_clear' if self.img_prefix[-1] != '/' \
-            else self.img_prefix[:-1] + '_clear'# clear image prefix
         self.img_suffix = img_suffix
+        self.cl_prefix = self.img_prefix + cl_prefix if self.img_prefix[-1] != '/' \
+            else self.img_prefix[:-1] + cl_prefix# clear image prefix
+        
         
         self.data_infos = self.load_annotations(self.ann_file)
         self._set_group_flag()
