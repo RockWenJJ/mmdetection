@@ -1,54 +1,80 @@
 _base_ = [
-    '../_base_/models/faster_rcnn_r50_fpn.py',
+    '../_base_/models/faster_rcnn_r50vx_fpn.py',
     '../_base_/datasets/duor_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
 classes = ('holothurian', 'echinus', 'scallop', 'starfish')
 
 model = dict(
+    type='FasterUIE',
     roi_head=dict(
-        bbox_head=dict(num_classes=4)))
+        bbox_head=dict(num_classes=4)),
+    uie_neck = dict(
+        type='Decoder',
+        in_chs0=(2048, 1024, 512),
+        in_chs1=(1024, 512, 256),
+        out_chs=(1024, 512, 256),
+        kernel_sizes=(3, 3, 3),
+        strides=(1, 1, 1),
+        paddings=(1, 1, 1),
+        reflect_padding=True,
+        instance_norm=True,
+        out_indices=(0, 1, 2),
+        concat=True,
+        upsample_cfg=dict(type='UpsampleLayer', bilinear=False),
+    ),
+    uie_head=dict(
+        type='BaseSwinHead',
+        in_ch=256,
+        instance_norm=False,
+        up_scale=2,
+        loss_mse_cfg=dict(type='MSELoss', loss_weight=1.),
+        loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=0.1),
+        loss_cos_cfg=dict(type='CosineLoss', loss_weight=1.)
+    )
+)
 
-# data = dict(
-#     train=dict(classes=classes),
-#     val=dict(classes=classes),
-#     test=dict(classes=classes))
-# cfg_dict = './faster_rcnn_r50_fpn_1x_duor.py'
-checkpoint_config = dict(  # Config to set the checkpoint hook, Refer to https://github.com/open-mmlab/mmcv/blob/master/mmcv/runner/hooks/checkpoint.py for implementation.
-    interval=5)  # The save interval is 1
-log_config = dict(  # config to register logger hook
-    interval=50,  # Interval to print the log
+log_config = dict(
+    interval=50,
     hooks=[
-        # dict(type='EvalHook', by_epoch=False),
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook'),
-        # dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
-        #      interval=50,
-        #      init_kwargs={'project': "DUO-Detection", # Project name in WandB
-        #                   'name': 'duor_200e'},
-        #      log_checkpoint=False,
-        #      num_eval_images=100,
-        #      bbox_score_thr=0.3,
-        #      ),
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=False,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='UieDet',
+                              name='faster_uie_r50vx_fpn_200e_duoswn')
+             )
     ])
 
-# overwrite schedule
-# optimizer
-optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
+# overwrite optimizer
+# optimizer = dict(
+#     _delete_=True,
+#     type='AdamW',
+#     lr=0.0001,
+#     betas=(0.9, 0.999),
+#     weight_decay=0.05,
+#     paramwise_cfg=dict(
+#         custom_keys={
+#             'absolute_pos_embed': dict(decay_mult=0.),
+#             'relative_position_bias_table': dict(decay_mult=0.),
+#             'norm': dict(decay_mult=0.)
+#         }))
 optimizer_config = dict(grad_clip=None)
-# default decay ratio: gamma:0.1, min_lr: None
+optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
 lr_config = dict(
     policy='step',
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[150, 180])
+    step=[100, 180])
 runner = dict(type='EpochBasedRunner', max_epochs=200)
 
 
 # overwrite dataset config
-# dataset settings
-dataset_type = 'CocoDataset'
+dataset_type = 'UwCocoDataset'
 data_root = 'data/duo_resized/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
@@ -67,7 +93,7 @@ train_pipeline = [
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'cl_img']),
 ]
 
 test_pipeline = [
@@ -85,30 +111,36 @@ test_pipeline = [
             #      allow_negative_crop=True),
             dict(type='Normalize', **img_norm_cfg),
             dict(type='Pad', size_divisor=32),
-            dict(type='ImageToTensor', keys=['img']),
-            dict(type='Collect', keys=['img']),
+            dict(type='ImageToTensor', keys=['img', 'cl_img']),
+            # dict(type='DefaultFormatBundle'),
+            dict(type='Collect', keys=['img', 'cl_img']),
         ])
 ]
 
 data = dict(
     samples_per_gpu=8,
-    workers_per_gpu=0,
+    workers_per_gpu=8,
     train=dict(
         type=dataset_type,
         classes=classes,
         ann_file=data_root + 'annotations/instances_train.json',
         img_prefix=data_root + 'images/train/',
+        cl_prefix='_clear_swn-syn',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
         classes=classes,
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
+        cl_prefix='_clear_swn-syn',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
         classes=classes,
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
+        cl_prefix='_clear_swn-syn',
         pipeline=test_pipeline))
-evaluation = dict(interval=5, metric='bbox', classwise=True)
+
+checkpoint_config = dict(interval=5)
+evaluation = dict(type='UieDetEvalHook', interval=2, metric='bbox', classwise=True)
