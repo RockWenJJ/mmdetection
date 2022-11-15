@@ -7,6 +7,8 @@ classes = ('holothurian', 'echinus', 'scallop', 'starfish')
 
 model = dict(
     type='FasterUIE',
+    backbone=dict(
+        deep_stem=True),
     roi_head=dict(
         bbox_head=dict(num_classes=4)),
     uie_neck = dict(

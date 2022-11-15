@@ -6,6 +6,9 @@ _base_ = [
 classes = ('holothurian', 'echinus', 'scallop', 'starfish')
 
 model = dict(
+    backbone=dict(
+        type='ResNetVx2',
+        deep_stem=False),
     roi_head=dict(
         bbox_head=dict(num_classes=4)))
 
@@ -22,14 +25,14 @@ log_config = dict(  # config to register logger hook
         # dict(type='EvalHook', by_epoch=False),
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook'),
-        # dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
-        #      interval=50,
-        #      init_kwargs={'project': "DUO-Detection", # Project name in WandB
-        #                   'name': 'duor_200e'},
-        #      log_checkpoint=False,
-        #      num_eval_images=100,
-        #      bbox_score_thr=0.3,
-        #      ),
+        dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
+             interval=50,
+             init_kwargs={'project': "UieDet", # Project name in WandB
+                          'name': 'faster_rcnn_r50vx2_fpn_200e_duor'},
+             log_checkpoint=False,
+             num_eval_images=100,
+             bbox_score_thr=0.3,
+             ),
     ])
 
 # overwrite schedule
@@ -42,7 +45,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[150, 180])
+    step=[100, 180])
 runner = dict(type='EpochBasedRunner', max_epochs=200)
 
 
@@ -92,7 +95,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=8,
-    workers_per_gpu=0,
+    workers_per_gpu=8,
     train=dict(
         type=dataset_type,
         classes=classes,
@@ -111,4 +114,4 @@ data = dict(
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
         pipeline=test_pipeline))
-evaluation = dict(interval=5, metric='bbox', classwise=True)
+evaluation = dict(interval=2, metric='bbox', classwise=True)

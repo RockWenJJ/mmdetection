@@ -6,6 +6,9 @@ _base_ = [
 classes = ('holothurian', 'echinus', 'scallop', 'starfish')
 
 model = dict(
+    backbone=dict(
+        type='ResNetVx',
+        deep_stem=True),
     roi_head=dict(
         bbox_head=dict(num_classes=4)))
 

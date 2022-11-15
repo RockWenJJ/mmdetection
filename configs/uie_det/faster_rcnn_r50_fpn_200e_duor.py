@@ -6,6 +6,8 @@ _base_ = [
 classes = ('holothurian', 'echinus', 'scallop', 'starfish')
 
 model = dict(
+    backbone=dict(
+        deep_stem=False),
     roi_head=dict(
         bbox_head=dict(num_classes=4)))
 
@@ -111,4 +113,4 @@ data = dict(
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
         pipeline=test_pipeline))
-evaluation = dict(interval=5, metric='bbox', classwise=True)
+evaluation = dict(interval=1, metric='bbox', classwise=True)
