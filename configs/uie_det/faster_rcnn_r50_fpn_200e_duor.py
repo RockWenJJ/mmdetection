@@ -24,14 +24,14 @@ log_config = dict(  # config to register logger hook
         # dict(type='EvalHook', by_epoch=False),
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook'),
-        # dict(type='MMDetWandbHook',# The Wandb logger is also supported, It requires `wandb` to be installed.
-        #      interval=50,
-        #      init_kwargs={'project': "DUO-Detection", # Project name in WandB
-        #                   'name': 'duor_200e'},
-        #      log_checkpoint=False,
-        #      num_eval_images=100,
-        #      bbox_score_thr=0.3,
-        #      ),
+        dict(type='MMDetWandbHook',  # The Wandb logger is also supported, It requires `wandb` to be installed.
+             interval=50,
+             init_kwargs={'project': "UieDet",  # Project name in WandB
+                          'name': 'faster_rcnn_r50_fpn_200e_duor'},
+             log_checkpoint=False,
+             num_eval_images=100,
+             bbox_score_thr=0.3,
+             ),
     ])
 
 # overwrite schedule
@@ -113,4 +113,4 @@ data = dict(
         ann_file=data_root + 'annotations/instances_test_crop256x256.json',
         img_prefix=data_root + 'images/test_crop256x256/',
         pipeline=test_pipeline))
-evaluation = dict(interval=1, metric='bbox', classwise=True)
+evaluation = dict(interval=2, metric='bbox', classwise=True)
