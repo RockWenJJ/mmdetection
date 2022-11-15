@@ -690,4 +690,24 @@ class ResNetVx(ResNet):
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
-    
+
+@BACKBONES.register_module()
+class ResNetVx2(ResNet):
+    r'''ResNet w/o maxpoool before res_layers for better small object detection.'''
+    def forward(self, x):
+        """Forward function."""
+        if self.deep_stem:
+            x = self.stem(x)
+        else:
+            x = self.conv1(x)
+            x = self.norm1(x)
+            x = self.relu(x)
+        outs = []
+        outs.append(x)
+        x = self.maxpool(x)
+        for i, layer_name in enumerate(self.res_layers):
+            res_layer = getattr(self, layer_name)
+            x = res_layer(x)
+            if i in self.out_indices:
+                outs.append(x)
+        return tuple(outs)
