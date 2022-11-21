@@ -8,6 +8,10 @@ classes = ('holothurian', 'echinus', 'scallop', 'starfish')
 model = dict(
     backbone=dict(
         deep_stem=False),
+    rpn_head=dict(
+        anchor_generator=dict(
+            scales=[4, 5.6, 8]),
+       ),
     roi_head=dict(
         bbox_head=dict(num_classes=4)))
 
@@ -27,7 +31,7 @@ log_config = dict(  # config to register logger hook
         dict(type='MMDetWandbHook',  # The Wandb logger is also supported, It requires `wandb` to be installed.
              interval=50,
              init_kwargs={'project': "UieDet",  # Project name in WandB
-                          'name': 'faster_rcnn_r50_fpn_rpns_200e_duor'},
+                          'name': 'faster_rcnn_r50_fpn_rpn3s_200e_duor'},
              log_checkpoint=False,
              num_eval_images=100,
              bbox_score_thr=0.3,
