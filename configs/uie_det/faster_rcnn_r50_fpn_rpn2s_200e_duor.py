@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/models/faster_rcnn_r50_fpn.py',
+    '../_base_/models/faster_rcnn_r50_fpn_rpn2s.py',
     '../_base_/datasets/duor_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
@@ -27,7 +27,7 @@ log_config = dict(  # config to register logger hook
         dict(type='MMDetWandbHook',  # The Wandb logger is also supported, It requires `wandb` to be installed.
              interval=50,
              init_kwargs={'project': "UieDet",  # Project name in WandB
-                          'name': 'faster_rcnn_r50_fpn_200e_duor'},
+                          'name': 'faster_rcnn_r50_fpn_rpns_200e_duor'},
              log_checkpoint=False,
              num_eval_images=100,
              bbox_score_thr=0.3,
