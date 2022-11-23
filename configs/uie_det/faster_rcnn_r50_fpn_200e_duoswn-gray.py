@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/models/faster_rcnn_r50_fpn_rpn2s.py',
+    '../_base_/models/faster_rcnn_r50_fpn.py',
     '../_base_/datasets/duor_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
@@ -8,21 +8,8 @@ classes = ('holothurian', 'echinus', 'scallop', 'starfish')
 model = dict(
     backbone=dict(
         deep_stem=False),
-    rpn_head=dict(
-        anchor_generator=dict(
-            scales=[2.8, 4., 5.6]),
-       ),
     roi_head=dict(
-        bbox_head=dict(num_classes=4),
-        bbox_roi_extractor=dict(
-            type='GenericRoIExtractor',
-            roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=0),
-            aggregation='sum',
-            out_channels=256,
-            featmap_strides=[4, 8, 16, 32]),
-    ),
-
-)
+        bbox_head=dict(num_classes=4)))
 
 # data = dict(
 #     train=dict(classes=classes),
@@ -37,14 +24,14 @@ log_config = dict(  # config to register logger hook
         # dict(type='EvalHook', by_epoch=False),
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook'),
-        # dict(type='MMDetWandbHook',  # The Wandb logger is also supported, It requires `wandb` to be installed.
-        #      interval=50,
-        #      init_kwargs={'project': "UieDet",  # Project name in WandB
-        #                   'name': 'faster_rcnn_r50_fpn_rpn3s_200e_duor'},
-        #      log_checkpoint=False,
-        #      num_eval_images=100,
-        #      bbox_score_thr=0.3,
-        #      ),
+        dict(type='MMDetWandbHook',  # The Wandb logger is also supported, It requires `wandb` to be installed.
+             interval=50,
+             init_kwargs={'project': "DuoDetGray",  # Project name in WandB
+                          'name': 'duoswn_gray'},
+             log_checkpoint=False,
+             num_eval_images=100,
+             bbox_score_thr=0.3,
+             ),
     ])
 
 # overwrite schedule
@@ -64,7 +51,7 @@ runner = dict(type='EpochBasedRunner', max_epochs=200)
 # overwrite dataset config
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = 'data/duo_resized/'
+data_root = 'data/duo_swn-syn_gray/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 img_scale = (512, 288)
@@ -107,7 +94,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=8,
-    workers_per_gpu=0,
+    workers_per_gpu=8,
     train=dict(
         type=dataset_type,
         classes=classes,
