@@ -309,10 +309,10 @@ class MaskedAutoencoderViT(BaseModule):
         pred, mask = self.parse_pred(pred, mask)
         
         images_dict = dict()
-        images_dict['input'] = input_img
+        images_dict['input'] = input_img * (1-mask)
         images_dict['predict'] = pred
         images_dict['target'] = img
-        images_dict['input_masked'] = input_img * (1-mask)
+        # images_dict['input_masked'] = input_img * (1-mask)
         return losses, images_dict
     
     def parse_pred(self, pred, mask):
