@@ -53,7 +53,7 @@ train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    # dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
