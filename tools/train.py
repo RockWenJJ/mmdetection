@@ -29,6 +29,8 @@ def parse_args():
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
     parser.add_argument(
+        '--load-from', help='the checkpoint file to load from, without training info')
+    parser.add_argument(
         '--auto-resume',
         action='store_true',
         help='resume from the latest checkpoint automatically')
@@ -150,6 +152,7 @@ def main():
     if args.resume_from is not None:
         cfg.resume_from = args.resume_from
     cfg.auto_resume = args.auto_resume
+    cfg.load_from = args.load_from
     if args.gpus is not None:
         cfg.gpu_ids = range(1)
         warnings.warn('`--gpus` is deprecated because we only support '

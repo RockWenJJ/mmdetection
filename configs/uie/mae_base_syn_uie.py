@@ -4,7 +4,7 @@ _base_=['../_base_/models/mae_vit_base_patch16.py',
         '../_base_/default_runtime.py']
 
 model = dict(
-    mask_ratio=0.5
+    mask_ratio=0.75
 )
 
 log_config = dict(
@@ -17,7 +17,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='MaeUIE',
-                              name='mae_syn_uie_20221128')
+                              name='mae_bse_syn_uie_20221129')
              )
     ])
 
@@ -48,7 +48,7 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (256, 256)
+img_scale = (224, 224)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),

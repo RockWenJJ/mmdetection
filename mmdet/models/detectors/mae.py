@@ -296,8 +296,8 @@ class MaskedAutoencoderViT(BaseModule):
     
     def forward(self, img, img_metas, return_loss=True, **kwargs):
         assert 'input' in kwargs
-        # input_img = kwargs['input']
-        input_img = img #kwargs['input']
+        input_img = kwargs['input']
+        # input_img = img #kwargs['input']
         if self.mode == 'train':
             latent, mask, ids_restore = self.forward_encoder(input_img, self.mask_ratio)
         else:
@@ -311,7 +311,7 @@ class MaskedAutoencoderViT(BaseModule):
         
         images_dict = dict()
         images_dict['input'] = input_img * (1-mask)
-        images_dict['predict'] = pred
+        images_dict['predict'] = pred * mask + img * (1 - mask)
         images_dict['target'] = img
         # images_dict['input_masked'] = input_img * (1-mask)
         return losses, images_dict
