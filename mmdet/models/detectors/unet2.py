@@ -68,8 +68,8 @@ class UNet2(BaseModule):
             #         losses[k+'_img'] = losses[k+'_img'] + v if k in losses else v
             # losses.update(self.head.loss(x, img, img_metas))
         else:
-            images_dict['pred_img'] = pred_img[0]
-            images_dict['targ_img'] = target
+            images_dict['predict'] = pred_img[0]
+            images_dict['target'] = target
             losses.update(self.decoder.out_head.loss(pred_img[0], target, img_metas, 'img'))
             if self.decoder_back is not None:
                 losses.update(self.decoder_back.out_head.loss(pred_back[0], target_back, img_metas, 'back'))
