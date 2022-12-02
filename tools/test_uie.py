@@ -27,7 +27,7 @@ def single_gpu_uie_test(model,
     for i, data in enumerate(data_loader):
         try:
             with torch.no_grad():
-                result = model(return_loss=False, **data)
+                result = model(**data, return_loss=False)
         except Exception as e:
             print(e)
         

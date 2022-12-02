@@ -43,10 +43,17 @@ class BaseHead(BaseModule):
         loss_cos = self.loss_cos(pred, gt)
         return loss_mse, loss_ssim, loss_cos
     
-    def loss(self, preds, gts, img_metas):
+    def loss(self, preds, gts, img_metas, suffix=None):
         loss_mse, loss_ssim, loss_cos = self.loss_single(preds, gts)
-        
-        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim, loss_cos=loss_cos)
+
+        if suffix is None:
+            return dict(loss_mse=loss_mse, loss_ssim=loss_ssim, loss_cos=loss_cos)
+        else:
+            loss_dict = dict()
+            loss_dict[f'loss_mse_{suffix}'] = loss_mse
+            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
+            loss_dict[f'loss_cos_{suffix}'] = loss_cos
+            return loss_dict
 
 
 @HEADS.register_module()
@@ -93,10 +100,17 @@ class BaseSwinHead(BaseModule):
         loss_cos = self.loss_cos(pred, gt)
         return loss_mse, loss_ssim, loss_cos
     
-    def loss(self, preds, gts, img_metas):
+    def loss(self, preds, gts, img_metas, suffix=None):
         loss_mse, loss_ssim, loss_cos = self.loss_single(preds, gts)
-        
-        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim, loss_cos=loss_cos)
+
+        if suffix is None:
+            return dict(loss_mse=loss_mse, loss_ssim=loss_ssim, loss_cos=loss_cos)
+        else:
+            loss_dict = dict()
+            loss_dict[f'loss_mse_{suffix}'] = loss_mse
+            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
+            loss_dict[f'loss_cos_{suffix}'] = loss_cos
+            return loss_dict
 
 
 @HEADS.register_module()
@@ -146,10 +160,16 @@ class BaseSwinHead2(BaseModule):
         loss_ssim = self.loss_ssim(pred, gt)
         return loss_mse, loss_ssim
     
-    def loss(self, preds, gts, img_metas):
+    def loss(self, preds, gts, img_metas, suffix=None):
         loss_mse, loss_ssim = self.loss_single(preds, gts)
-        
-        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
+
+        if suffix is None:
+            return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
+        else:
+            loss_dict = dict()
+            loss_dict[f'loss_mse_{suffix}'] = loss_mse
+            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
+            return loss_dict
 
 
 @HEADS.register_module()
@@ -194,7 +214,13 @@ class BaseMultiConvHead(BaseModule):
         loss_ssim = self.loss_ssim(pred, gt)
         return loss_mse, loss_ssim
     
-    def loss(self, preds, gts, img_metas):
+    def loss(self, preds, gts, img_metas, suffix=None):
         loss_mse, loss_ssim = self.loss_single(preds, gts)
-        
-        return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
+        if suffix is None:
+            return dict(loss_mse=loss_mse, loss_ssim=loss_ssim)
+        else:
+            loss_dict = dict()
+            loss_dict[f'loss_mse_{suffix}'] = loss_mse
+            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
+            return loss_dict
+            

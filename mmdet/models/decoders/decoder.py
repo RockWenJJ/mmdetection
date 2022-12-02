@@ -3,11 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from mmcv.cnn import build_conv_layer, build_norm_layer, build_upsample_layer
 from mmcv.runner import BaseModule
-from ..utils import *
-from ..builder import NECKS, build_layer, build_neck
+from mmdet.models.utils import *
+from mmdet.models.builder import DECODERS, build_layer, build_neck, build_head
 
 
-@NECKS.register_module()
+@DECODERS.register_module()
 class Decoder(BaseModule):
     def __init__(self,
                  in_chs0,
@@ -19,8 +19,10 @@ class Decoder(BaseModule):
                  reflect_padding,
                  instance_norm,
                  out_indices,
+                 multi_scales=False,
                  concat=True,
                  upsample_cfg=None,
+                 out_cfg=None
                  ):
         super(Decoder, self).__init__()
         self.out_indices = out_indices
@@ -57,24 +59,42 @@ class Decoder(BaseModule):
             conv_name = f'decode{i}_conv'
             self.add_module(upsample_name, upsample_layer)
             self.add_module(conv_name, conv_layer)
+        
+        if out_cfg is not None:
+            self.out_head = build_head(out_cfg)
+            self.add_module('out_head', self.out_head)
+        else:
+            self.out_head = None
+        
+        self.multi_scales = multi_scales
     
     def forward(self, xs):
         outs = []
-        x = xs.pop(0)
+        x = xs[0]
         for i, (upsample, conv) in enumerate(zip(self.upsample_layers, self.conv_layers)):
             x = upsample(x)
             if self.concat:
-                x = torch.concat([x, xs[i]], dim=1)
+                x = torch.concat([x, xs[i+1]], dim=1)
             else:
-                x = x + xs[i]
+                x = x + xs[i+1]
             x = conv(x)
             if i in self.out_indices:
                 outs.append(x)
         
-        return tuple(outs)
+        if self.out_head is None:
+            return tuple(outs)
+        else: # return final outputs if out_head is not None
+            head_outs = []
+            if self.multi_scales:
+                for i, x in enumerate(outs):
+                    head_outs.append(self.out_head(x))
+            else:
+                head_outs.append(self.out_head(outs[-1]))
+                
+            return tuple(head_outs)
 
 
-@NECKS.register_module()
+@DECODERS.register_module()
 class FeaturePyramid(BaseModule):
     def __init__(self,
                  in_chs,

@@ -13,6 +13,8 @@ ROI_EXTRACTORS = MODELS
 SHARED_HEADS = MODELS
 HEADS = MODELS
 LOSSES = MODELS
+ENCODERS = MODELS
+DECODERS = MODELS
 DETECTORS = MODELS
 
 def build_layer(cfg):
@@ -23,6 +25,13 @@ def build_backbone(cfg):
     """Build backbone."""
     return BACKBONES.build(cfg)
 
+def build_encoder(cfg):
+    """Build encoder."""
+    return ENCODERS.build(cfg)
+
+def build_decoder(cfg):
+    """Build decoder."""
+    return DECODERS.build(cfg)
 
 def build_neck(cfg):
     """Build neck."""

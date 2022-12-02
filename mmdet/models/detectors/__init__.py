@@ -47,6 +47,7 @@ from .yolox import YOLOX
 from .unet import UNet
 from .faster_uie import FasterUIE
 from .mae import MaskedAutoencoderViT
+from .unet2 import UNet2
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -57,5 +58,5 @@ __all__ = [
     'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN', 'SCNet', 'SOLO',
     'SOLOv2', 'DeformableDETR', 'AutoAssign', 'YOLOF', 'CenterNet', 'YOLOX',
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
-    'MaskFormer', 'DDOD', 'Mask2Former', 'UNet', 'FasterUIE', 'MaskedAutoencoderViT'
+    'MaskFormer', 'DDOD', 'Mask2Former', 'UNet', 'FasterUIE', 'MaskedAutoencoderViT', 'UNet2'
 ]

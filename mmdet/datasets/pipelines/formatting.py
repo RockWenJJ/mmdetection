@@ -434,6 +434,7 @@ class SyreaFormatBundle(DefaultFormatBundle):
                     b = results['back%d' % i]
                     b = np.ascontiguousarray(b.transpose(2, 0, 1))
                     results['back%d' % i] = DC(to_tensor(b), stack=True)
+                    results['back'] = results['back%d'%i]
                 
                 # formatting direct transmission
                 if 'direct%d' % i in results.keys():
@@ -448,6 +449,7 @@ class SyreaFormatBundle(DefaultFormatBundle):
             
             if syn_num == 1:
                 results['input'] = results['syn_img0']
+                results['target'] = results['img']
         
         if 'depth' in results:
             # formatting white balanced point

@@ -92,7 +92,6 @@ class MaskedAutoencoderViT(BaseModule):
                  mlp_ratio=4.,
                  norm_layer=nn.LayerNorm,
                  norm_pix_loss=False,
-                 mode='train',
                  mask_ratio=0.75,
                  **kwargs):
         super().__init__()
@@ -134,7 +133,6 @@ class MaskedAutoencoderViT(BaseModule):
         self.norm_pix_loss = norm_pix_loss
         
         self.mask_ratio = mask_ratio
-        self.mode = mode
         
         self.initialize_weights()
     
@@ -295,17 +293,16 @@ class MaskedAutoencoderViT(BaseModule):
         return losses
     
     def forward(self, img, img_metas, return_loss=True, **kwargs):
-        assert 'input' in kwargs
-        input_img = kwargs['input']
-        # input_img = img #kwargs['input']
-        if self.mode == 'train':
+        if return_loss:
+            assert 'input' in kwargs
+            input_img = kwargs['input']
             latent, mask, ids_restore = self.forward_encoder(input_img, self.mask_ratio)
+            pred = self.forward_decoder(latent, ids_restore)
+            losses = self.forward_loss(img, pred, mask)
         else:
-            latent, mask, ids_restore = self.forward_encoder(input_img, 0.)
-        pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3]
-        
-        # compute loss
-        losses = self.forward_loss(img, pred, mask)
+            input_img = img
+            latent, mask, ids_restore = self.forward_encoder(input_img, self.mask_ratio)
+            pred = self.forward_decoder(latent, ids_restore)
         # parse images
         pred, mask = self.parse_pred(pred, mask)
         
@@ -314,7 +311,10 @@ class MaskedAutoencoderViT(BaseModule):
         images_dict['predict'] = pred * mask + img * (1 - mask)
         images_dict['target'] = img
         # images_dict['input_masked'] = input_img * (1-mask)
-        return losses, images_dict
+        if return_loss:
+            return losses, images_dict
+        else:
+            return pred
     
     def parse_pred(self, pred, mask):
         pred = self.unpatchify(pred)

@@ -51,14 +51,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        dict(type='UIEWandbLoggerHook',
-             interval=50,
-             vis_interval=1000,
-             log_checkpoint=True,
-             log_checkpoint_metadata=True,
-             init_kwargs=dict(project='SyreaNetUIE',
-                              name='unet_swin-syn-coserr_uie_221110')
-             )
+        # dict(type='UIEWandbLoggerHook',
+        #      interval=50,
+        #      vis_interval=1000,
+        #      log_checkpoint=True,
+        #      log_checkpoint_metadata=True,
+        #      init_kwargs=dict(project='SyreaNetUIE',
+        #                       name='unet_swin-syn-coserr_uie_221110')
+        #      )
     ])
 
 # overwrite schedule

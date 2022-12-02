@@ -1,24 +1,23 @@
-_base_=['../_base_/models/mae_vit_base_patch16.py',
+_base_=['../_base_/models/unet2_swin_base.py',
         '../_base_/datasets/syrea_uie.py',
         '../_base_/schedules/schedule_20e.py',
         '../_base_/default_runtime.py']
-
+pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    mask_ratio=0.75
-)
+    type='UNet2')
 
 log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        dict(type='UIEWandbLoggerHook',
-             interval=50,
-             vis_interval=1000,
-             log_checkpoint=True,
-             log_checkpoint_metadata=True,
-             init_kwargs=dict(project='MaeUIE',
-                              name='mae_base_syn_uie_20221129')
-             )
+        # dict(type='UIEWandbLoggerHook',
+        #      interval=50,
+        #      vis_interval=1000,
+        #      log_checkpoint=True,
+        #      log_checkpoint_metadata=True,
+        #      init_kwargs=dict(project='SyreaNetUIE',
+        #                       name='unet_swin-syn-coserr_uie_221110')
+        #      )
     ])
 
 # overwrite schedule
@@ -33,12 +32,12 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[5, 90])
+    step=[20, 98])
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
-dataset_type = 'SynDataset'
+dataset_type = 'SynBackDataset'
 data_root = './data/synthesis/'
 real_dataset_type = 'UWDataset'
 real_root = './data/real/'
@@ -48,32 +47,45 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (224, 224)
+img_scale = (620, 460)
+crop_size = (256, 256)
+
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
+    dict(type='LoadBackFromFile'),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    # dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    dict(type='RandomCrop',
+         crop_type='absolute',
+         crop_size=crop_size,
+         recompute_bbox=True,
+         allow_negative_crop=True),
+    dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
-    dict(type='Collect', keys=['img', 'input'])
+    dict(type='Collect', keys=['img', 'input', 'back', 'target'])
 ]
 
 val_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
+    dict(type='LoadBackFromFile'),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
+    dict(type='CenterCrop',
+         crop_type='absolute',
+         crop_size=crop_size,
+         recompute_bbox=True,
+         allow_negative_crop=True),
     dict(type='RandomFlip', flip_ratio=0.),
     dict(type='Normalize', **img_norm_cfg),
     # dict(type='Pad', size_divisor=32),
     dict(type='SyreaFormatBundle'),
-    dict(type='Collect', keys=['img', 'input'])
+    dict(type='Collect', keys=['img', 'input', 'back', 'target'])
 ]
 
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', img_scale=img_scale, keep_ratio=False),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
@@ -101,5 +113,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=5)
+checkpoint_config = dict(interval=2)
 evaluation = dict(type='UieEvalHook', interval=2)
