@@ -59,14 +59,15 @@ class UIEWandbLoggerHook(WandbLoggerHook):
         mode = self.get_mode(runner)
         if self.every_n_iters(runner, self.vis_interval):
             img_dict = dict()
-            for key in runner.outputs.keys():
-                img_dict[f'{mode}/{key}'] = runner.outputs['images']['predict'].cpu().data
-            # img_dict = {f'{mode}/predicts': runner.outputs['images']['predict'].cpu().data,
-            #             f'{mode}/targets': runner.outputs['images']['target'].cpu().data,
-            #             f'{mode}/input': runner.outputs['images']['input'].cpu().data}
-            for k, v in img_dict.items():
-                img_dict[k] = self.wandb.Image(v)
-            self.wandb.log(img_dict, step=self.get_iter(runner))
+            if 'images' in runner.outputs.keys():
+                for key in runner.outputs['images'].keys():
+                    img_dict[f'{mode}/{key}'] = runner.outputs['images'][key].cpu().data
+                # img_dict = {f'{mode}/predicts': runner.outputs['images']['predict'].cpu().data,
+                #             f'{mode}/targets': runner.outputs['images']['target'].cpu().data,
+                #             f'{mode}/input': runner.outputs['images']['input'].cpu().data}
+                for k, v in img_dict.items():
+                    img_dict[k] = self.wandb.Image(v)
+                self.wandb.log(img_dict, step=self.get_iter(runner))
         
         # log checkpoints
         if self.reset_flag:

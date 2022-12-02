@@ -10,14 +10,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=1000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='SyreaNetUIE',
-        #                       name='unet_swin-syn-coserr_uie_221110')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='SyreaNetUIE',
+                              name='unet2_swin-syn_uie-back')
+             )
     ])
 
 # overwrite schedule
@@ -32,7 +32,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[20, 98])
+    step=[20, 90])
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
