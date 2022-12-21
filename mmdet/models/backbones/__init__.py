@@ -18,11 +18,13 @@ from .swin import SwinTransformer
 from .swin_uie import SwinUIE
 from .trident_resnet import TridentResNet
 from .encoder import Encoder
+from .vgg import VGG
 
 __all__ = [
     'RegNet', 'ResNet', 'ResNetV1d', 'ResNeXt', 'SSDVGG', 'HRNet',
     'MobileNetV2', 'Res2Net', 'HourglassNet', 'DetectoRS_ResNet',
     'DetectoRS_ResNeXt', 'Darknet', 'ResNeSt', 'TridentResNet', 'CSPDarknet',
     'SwinTransformer', 'PyramidVisionTransformer',
-    'PyramidVisionTransformerV2', 'EfficientNet', 'Encoder', 'ResNetVx', 'ResNetVx2'
+    'PyramidVisionTransformerV2', 'EfficientNet', 'Encoder', 'ResNetVx', 'ResNetVx2',
+    'VGG'
 ]

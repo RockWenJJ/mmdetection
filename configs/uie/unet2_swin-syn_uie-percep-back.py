@@ -4,20 +4,22 @@ _base_=['../_base_/models/unet2_swin_base.py',
         '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='UNet2')
+    type='UNet2',
+    with_perceptual_loss=True,
+)
 
 log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=2000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='SyreaNetUIE',
-        #                       name='unet2_swin-syn_uie-back')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='SyreaNetUIE',
+                              name='unet2_swin-syn_uie-percep-back')
+             )
     ])
 
 # overwrite schedule

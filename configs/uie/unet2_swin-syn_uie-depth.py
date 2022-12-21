@@ -4,7 +4,68 @@ _base_=['../_base_/models/unet2_swin_base.py',
         '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='UNet2')
+    __delete__=True,
+    type='UNet2',
+    encoder=dict(
+        type='SwinTransformer',
+        embed_dims=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=7,
+        mlp_ratio=4,
+        qkv_bias=True,
+        qk_scale=None,
+        drop_rate=0.,
+        attn_drop_rate=0.,
+        drop_path_rate=0.2,
+        patch_norm=True,
+        out_indices=(0, 1, 2, 3),
+        with_cp=False,
+        convert_weights=True,
+        init_cfg=dict(type='Pretrained', checkpoint=pretrained)),
+    decoder=dict(
+        type='Decoder',
+        in_chs0=(768, 576, 384),
+        in_chs1=(384, 192, 96),
+        out_chs=(576, 384, 256),
+        kernel_sizes=(3, 3, 3),
+        strides=(1, 1, 1),
+        paddings=(1, 1, 1),
+        reflect_padding=False, # align with SwinTransformer
+        instance_norm=False, # align with SwinTransformer
+        out_indices=(0, 1, 2),
+        concat=True,
+        upsample_cfg=dict(type='UpsampleLayer', bilinear=False),
+        out_cfg=dict(
+            type='BaseSwinHead',
+            in_ch=256,
+            loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),
+            loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=1.),
+            loss_cos_cfg=dict(type='CosineLoss', loss_weight=10.)
+        )
+    ),
+    decoder_depth=dict(
+        type='Decoder',
+        in_chs0=(768, 576, 384),
+        in_chs1=(384, 192, 96),
+        out_chs=(576, 384, 256),
+        kernel_sizes=(3, 3, 3),
+        strides=(1, 1, 1),
+        paddings=(1, 1, 1),
+        reflect_padding=False, # align with SwinTransformer
+        instance_norm=False, # align with SwinTransformer
+        out_indices=(0, 1, 2),
+        concat=True,
+        upsample_cfg=dict(type='UpsampleLayer', bilinear=False),
+        out_cfg=dict(
+            type='BaseSwinHead',
+            in_ch=256,
+            loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),
+            loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=1.),
+        )
+    ),
+    multi_scales=False
+)
 
 log_config = dict(
     interval=50,
@@ -16,7 +77,7 @@ log_config = dict(
         #      log_checkpoint=True,
         #      log_checkpoint_metadata=True,
         #      init_kwargs=dict(project='SyreaNetUIE',
-        #                       name='unet2_swin-syn_uie-back')
+        #                       name='unet2_swin-syn_uie-depth')
         #      )
     ])
 
@@ -47,41 +108,41 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (256, 256) #(620, 460)
+img_scale = (620, 460)
 crop_size = (256, 256)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='LoadSynthesisFromFile'),
+    dict(type='LoadDepthFromFile'),
     dict(type='LoadBackFromFile'),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    # dict(type='RandomCrop',
-    #      crop_type='absolute',
-    #      crop_size=crop_size,
-    #      recompute_bbox=True,
-    #      allow_negative_crop=True),
+    dict(type='RandomCrop',
+         crop_type='absolute',
+         crop_size=crop_size,
+         recompute_bbox=True,
+         allow_negative_crop=True),
     dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
-    dict(type='Collect', keys=['img', 'input', 'back', 'target'])
+    dict(type='Collect', keys=['img', 'input', 'depth', 'target'])
 ]
 
 val_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='LoadSynthesisFromFile'),
+    dict(type='LoadDepthFromFile'),
     dict(type='LoadBackFromFile'),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    # dict(type='CenterCrop',
-    #      crop_type='absolute',
-    #      crop_size=crop_size,
-    #      recompute_bbox=True,
-    #      allow_negative_crop=True),
+    dict(type='CenterCrop',
+         crop_type='absolute',
+         crop_size=crop_size,
+         recompute_bbox=True,
+         allow_negative_crop=True),
     dict(type='RandomFlip', flip_ratio=0.),
     dict(type='Normalize', **img_norm_cfg),
     # dict(type='Pad', size_divisor=32),
     dict(type='SyreaFormatBundle'),
-    dict(type='Collect', keys=['img', 'input', 'back', 'target'])
+    dict(type='Collect', keys=['img', 'input', 'depth', 'target'])
 ]
 
 test_pipeline = [
@@ -94,7 +155,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=8,
+    samples_per_gpu=16,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,

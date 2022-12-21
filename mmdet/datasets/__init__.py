@@ -19,6 +19,7 @@ from .syn_dataset import SynDataset
 from .uw_dataset import UWDataset
 from .uw_coco_dataset import UwCocoDataset
 from .syn_back_dataset import SynBackDataset
+from .syn_depth_dataset import SynDepthDataset
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'DeepFashionDataset',
@@ -29,5 +30,5 @@ __all__ = [
     'build_dataset', 'replace_ImageToTensor', 'get_loading_pipeline',
     'NumClassCheckHook', 'CocoPanopticDataset', 'MultiImageMixDataset',
     'OpenImagesDataset', 'OpenImagesChallengeDataset', 'SynDataset',
-    'UWDataset', 'UwCocoDataset', 'SynBackDataset'
+    'UWDataset', 'UwCocoDataset', 'SynBackDataset', 'SynDepthDataset'
 ]

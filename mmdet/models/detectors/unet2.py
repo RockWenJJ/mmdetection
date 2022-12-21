@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from collections import OrderedDict
 from mmcv.runner import BaseModule
-from ..builder import build_head, build_encoder, build_decoder
+from ..builder import build_head, build_encoder, build_decoder, build_loss
 from ..builder import DETECTORS
 
 
@@ -15,6 +15,8 @@ class UNet2(BaseModule):
                  decoder_back=None,
                  decoder_depth=None,
                  multi_scales=False,
+                 with_perceptual_loss=False,
+                 perceptual_loss_cfg=dict(type='MSELoss', loss_weight=100.),
                  **kwargs):
         '''
         :param backbone:
@@ -28,7 +30,17 @@ class UNet2(BaseModule):
         self.decoder_back = build_decoder(decoder_back) if decoder_back is not None else None
         self.decoder_dep = build_decoder(decoder_depth) if decoder_depth is not None else None
         self.multi_scales = multi_scales
-    
+        self.with_perceptual_loss = with_perceptual_loss
+        if self.with_perceptual_loss:
+            from mmcv.cnn import VGG
+            self.vgg = VGG(depth=16, with_last_pool=False)
+            pretrained = "https://download.pytorch.org/models/vgg16-397923af.pth"
+            # load from pretrained ckpt
+            self.vgg.init_weights(pretrained)
+            self.vgg.eval()
+            self.perceptual_loss = build_loss(perceptual_loss_cfg)
+            
+
     def forward(self, img, img_metas, return_loss=True, **kwargs):
         
         if torch.onnx.is_in_onnx_export():
@@ -48,7 +60,7 @@ class UNet2(BaseModule):
         target = kwargs['target'][-1] if self.multi_scales else kwargs['target']
         
         
-        pred_back, _, pred_img = self.forward_img(input_img)
+        pred_back, pred_dep, pred_img = self.forward_img(input_img)
         
         losses = dict()
         images_dict = dict()
@@ -56,6 +68,9 @@ class UNet2(BaseModule):
         if self.decoder_back is not None:
             target_back = kwargs['back'][-1] if self.multi_scales else kwargs['back']
             images_dict['back'] = target_back
+        if self.decoder_dep is not None:
+            target_dep = kwargs['depth'][-1] if self.multi_scales else kwargs['depth']
+            images_dict['depth'] = target_back
         
         if self.multi_scales:
             raise NotImplementedError
@@ -74,21 +89,37 @@ class UNet2(BaseModule):
             if self.decoder_back is not None:
                 losses.update(self.decoder_back.out_head.loss(pred_back[0], target_back, img_metas, 'back'))
                 images_dict['pred_back'] = pred_back[0]
+            if self.decoder_dep is not None:
+                losses.update(self.decoder_dep.out_head.loss(pred_dep[0], target_dep, img_metas, 'back'))
+                images_dict['pred_dep'] = pred_dep[0]
+        
+            if self.with_perceptual_loss:
+                vgg_preds = self.vgg(pred_img[0])
+                vgg_targs = self.vgg(target)
+                percep_loss = 0
+                for i, (vgg_pred, vgg_targ) in enumerate(zip(vgg_preds[1:], vgg_targs[1:])):
+                    percep_loss += self.perceptual_loss(vgg_pred, vgg_targ)
+                    if i >= 2:
+                        mean_pred, std_pred = torch.mean(vgg_pred), torch.std(vgg_pred)
+                        mean_targ, std_targ = torch.mean(vgg_targ), torch.std(vgg_targ)
+                        percep_loss += self.perceptual_loss(mean_pred, mean_targ)
+                        percep_loss += self.perceptual_loss(std_pred, std_targ)
+                losses.update(dict(perceptual_loss=percep_loss))
         
         return losses, images_dict
     
     def forward_test(self, img, img_metas=None, **kwargs):
         # input_img = kwargs['input']
         input_img = img
-        xs = self.forward_img(input_img)
+        outs_back, outs_dep, outs_img = self.forward_img(input_img)
         # result = dict()
         # result['predict'] = x
-        return xs[-1]
+        return outs_img[-1]
     
     def forward_dummy(self, img):
         '''Used for computing network flops and convert to onnx models'''
         xs = self.forward_img(img)
-        return xs[-1]
+        return xs[-1][-1]
     
     def train_step(self, data, optimizer):
         losses, images_dict = self(**data)
