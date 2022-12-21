@@ -104,7 +104,7 @@ class UNet2(BaseModule):
                         mean_targ, std_targ = torch.mean(vgg_targ), torch.std(vgg_targ)
                         percep_loss += self.perceptual_loss(mean_pred, mean_targ)
                         percep_loss += self.perceptual_loss(std_pred, std_targ)
-                losses.update(dict(perceptual_loss=percep_loss))
+                losses.update(dict(loss_perceptual=percep_loss))
         
         return losses, images_dict
     
