@@ -9,6 +9,18 @@ model = dict(
         _delete_=True,
         type='TransformerEncoder'
     ),
+    decoder=dict(
+        _delete_=True,
+        type='TransformerDecoder',
+        out_cfg=dict(
+            type='BaseSwinHead',
+            in_ch=48,
+            up_scale=2,
+            loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),
+            loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=1.),
+            loss_cos_cfg=dict(type='CosineLoss', loss_weight=10.)
+        ),
+    ),
     with_perceptual_loss=False,
 )
 

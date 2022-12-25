@@ -179,7 +179,6 @@ class TransformerBlock(BaseModule):
         #     return x, hw_shape, x, hw_shape
 
 
-
 @BACKBONES.register_module()
 class TransformerEncoder(BaseModule):
     
