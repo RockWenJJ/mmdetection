@@ -16,6 +16,7 @@ from .resnext import ResNeXt
 from .ssd_vgg import SSDVGG
 from .swin import SwinTransformer
 from .swin_uie import SwinUIE
+from .transformer_encoder import TransformerEncoder
 from .trident_resnet import TridentResNet
 from .encoder import Encoder
 from .vgg import VGG
@@ -26,5 +27,5 @@ __all__ = [
     'DetectoRS_ResNeXt', 'Darknet', 'ResNeSt', 'TridentResNet', 'CSPDarknet',
     'SwinTransformer', 'PyramidVisionTransformer',
     'PyramidVisionTransformerV2', 'EfficientNet', 'Encoder', 'ResNetVx', 'ResNetVx2',
-    'VGG'
+    'VGG', 'TransformerEncoder'
 ]
