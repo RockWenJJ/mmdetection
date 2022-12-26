@@ -16,7 +16,7 @@ from .resnext import ResNeXt
 from .ssd_vgg import SSDVGG
 from .swin import SwinTransformer
 from .swin_uie import SwinUIE
-from .transformer_encoder import TransformerEncoder
+from .transformer_encoder import TransformerEncoder, TransformerEncoder2
 from .trident_resnet import TridentResNet
 from .encoder import Encoder
 from .vgg import VGG

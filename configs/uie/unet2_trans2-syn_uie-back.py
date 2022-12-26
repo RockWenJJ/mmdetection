@@ -7,19 +7,7 @@ model = dict(
     type='UNet2',
     encoder=dict(
         _delete_=True,
-        type='TransformerEncoder'
-    ),
-    decoder=dict(
-        _delete_=True,
-        type='TransformerDecoder',
-        out_cfg=dict(
-            type='BaseSwinHead',
-            in_ch=48,
-            up_scale=2,
-            loss_mse_cfg=dict(type='MSELoss', loss_weight=10.),
-            loss_ssim_cfg=dict(type='SSIMLoss', loss_weight=1.),
-            loss_cos_cfg=dict(type='CosineLoss', loss_weight=10.)
-        ),
+        type='TransformerEncoder2'
     ),
     with_perceptual_loss=False,
 )
@@ -34,7 +22,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='SyreaNetUIE',
-                              name='unet2_trans-trans_uie-back')
+                              name='unet2_trans2-syn_uie-back')
              )
     ])
 
