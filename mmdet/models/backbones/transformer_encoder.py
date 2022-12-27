@@ -2,6 +2,7 @@ import warnings
 from collections import OrderedDict
 from copy import deepcopy
 
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,6 +14,30 @@ from mmcv.cnn.bricks.transformer import FFN, build_dropout
 from ...utils import get_root_logger
 from ..utils.transformer import PatchMerging, PatchEmbed
 from ..builder import BACKBONES
+
+def positionalencoding2d(d_model, height, width):
+    """
+    :param d_model: dimension of the model
+    :param height: height of the positions
+    :param width: width of the positions
+    :return: d_model*height*width position matrix
+    """
+    if d_model % 4 != 0:
+        raise ValueError("Cannot use sin/cos positional encoding with "
+                         "odd dimension (got dim={:d})".format(d_model))
+    pe = torch.zeros( d_model, height, width)
+    # Each dimension use half of d_model
+    d_model = int(d_model / 2)
+    div_term = torch.exp(torch.arange(0., d_model, 2) *
+                         -(math.log(10000.0) / d_model))
+    pos_w = torch.arange(0., width).unsqueeze(1)
+    pos_h = torch.arange(0., height).unsqueeze(1)
+    pe[0:d_model:2, :, :] = torch.sin(pos_w * div_term).transpose(0, 1).unsqueeze(1).repeat(1, height, 1)
+    pe[1:d_model:2, :, :] = torch.cos(pos_w * div_term).transpose(0, 1).unsqueeze(1).repeat(1, height, 1)
+    pe[d_model::2, :, :] = torch.sin(pos_h * div_term).transpose(0, 1).unsqueeze(2).repeat(1, 1, width)
+    pe[d_model + 1::2, :, :] = torch.cos(pos_h * div_term).transpose(0, 1).unsqueeze(2).repeat(1, 1, width)
+
+    return pe.unsqueeze(0)
 
 # def _get_activation_fn(activation):
 #     """Return an activation function given a string"""
@@ -186,7 +211,8 @@ class TransformerEncoder(BaseModule):
                 downsample = None
 
             # add positional embedding
-            pos_embed = nn.Parameter(torch.zeros(1, in_channels, 18, 18))
+            # pos_embed = nn.Parameter(torch.zeros(1, in_channels, 18, 18))
+            pos_embed =  nn.Parameter(positionalencoding2d(in_channels, 18, 18))
             setattr(self, f'pos_embed{i}', pos_embed)
             
             stage = TransformerBlockSequence(
@@ -215,8 +241,8 @@ class TransformerEncoder(BaseModule):
             logger.warn(f'No pre-trained weights for '
                         f'{self.__class__.__name__}, '
                         f'training start from scratch')
-            for i in range(self.num_layers):
-                trunc_normal_(getattr(self, f'pos_embed{i}'), std=0.02)
+            # for i in range(self.num_layers):
+            #     trunc_normal_(getattr(self, f'pos_embed{i}'), std=0.02)
             for m in self.modules():
                 if isinstance(m, nn.Linear):
                     trunc_normal_init(m, std=.02, bias=0.)

@@ -56,41 +56,45 @@ class UNet2(BaseModule):
         assert 'input' in kwargs
         if self.multi_scales:
             assert isinstance(img, (list, tuple)), "when multi_scale, "
-        input_img = kwargs['input'][-1] if self.multi_scales else kwargs['input']
-        target = kwargs['target'][-1] if self.multi_scales else kwargs['target']
-        
-        
-        pred_back, pred_dep, pred_img = self.forward_img(input_img)
-        
+        input_imgs = kwargs['input'] if self.multi_scales else [kwargs['input']]
+        targets = kwargs['target'] if self.multi_scales else [kwargs['target']]
+
         losses = dict()
         images_dict = dict()
-        images_dict['input'] = input_img
+        images_dict['input'] = input_imgs[-1] # only vis the last scale result
         if self.decoder_back is not None:
-            target_back = kwargs['back'][-1] if self.multi_scales else kwargs['back']
-            images_dict['back'] = target_back
-        if self.decoder_dep is not None:
-            target_dep = kwargs['depth'][-1] if self.multi_scales else kwargs['depth']
-            images_dict['depth'] = target_back
-        
-        if self.multi_scales:
-            raise NotImplementedError
-            # assert len(xs) == len(img)
-            # images_dict['predict'] = pred_imgs[-1]
-            # images_dict['target'] = img[-1]
-            # for x, im in zip(pred_imgs, img):
-            #     layer_loss = self.decoder.out_head.loss(x, im, img_metas)
-            #     for k, v in layer_loss.items():
-            #         losses[k+'_img'] = losses[k+'_img'] + v if k in losses else v
-            # losses.update(self.head.loss(x, img, img_metas))
+            target_backs = kwargs['back'] if self.multi_scales else [kwargs['back']]
+            images_dict['back'] = target_backs[-1]
         else:
+            target_backs = [None for _ in range(len(input_imgs))]
+        if self.decoder_dep is not None:
+            target_deps = kwargs['depth'] if self.multi_scales else [kwargs['depth']]
+            images_dict['depth'] = target_deps[-1]
+        else:
+            target_deps = [None for _ in range(len(input_imgs))]
+            
+        for i, (input_img, target, target_back, target_dep) in enumerate(zip(input_imgs, targets, target_backs, target_deps)):
+            pred_back, pred_dep, pred_img = self.forward_img(input_img)
+            
+            # if self.multi_scales:
+            #     raise NotImplementedError
+            #     # assert len(xs) == len(img)
+            #     # images_dict['predict'] = pred_imgs[-1]
+            #     # images_dict['target'] = img[-1]
+            #     # for x, im in zip(pred_imgs, img):
+            #     #     layer_loss = self.decoder.out_head.loss(x, im, img_metas)
+            #     #     for k, v in layer_loss.items():
+            #     #         losses[k+'_img'] = losses[k+'_img'] + v if k in losses else v
+            #     # losses.update(self.head.loss(x, img, img_metas))
+            # else:
             images_dict['predict'] = pred_img[0]
             images_dict['target'] = target
-            losses.update(self.decoder.out_head.loss(pred_img[0], target, img_metas, 'img'))
+            losses.update(self.decoder.out_head.loss(pred_img[0], target, img_metas, f'img_{i}'))
             if self.decoder_back is not None:
-                losses.update(self.decoder_back.out_head.loss(pred_back[0], target_back, img_metas, 'back'))
+                losses.update(self.decoder_back.out_head.loss(pred_back[0], target_back, img_metas, f'back_{i}'))
                 images_dict['pred_back'] = pred_back[0]
             if self.decoder_dep is not None:
-                losses.update(self.decoder_dep.out_head.loss(pred_dep[0], target_dep, img_metas, 'back'))
+                losses.update(self.decoder_dep.out_head.loss(pred_dep[0], target_dep, img_metas, f'back_{i}'))
                 images_dict['pred_dep'] = pred_dep[0]
         
             if self.with_perceptual_loss:
@@ -104,7 +108,7 @@ class UNet2(BaseModule):
                         mean_targ, std_targ = torch.mean(vgg_targ), torch.std(vgg_targ)
                         percep_loss += self.perceptual_loss(mean_pred, mean_targ)
                         percep_loss += self.perceptual_loss(std_pred, std_targ)
-                losses.update(dict(loss_perceptual=percep_loss))
+                losses.update({f'loss_perceptual_{i}':percep_loss})
         
         return losses, images_dict
     

@@ -22,7 +22,7 @@ log_config = dict(
         #      log_checkpoint=True,
         #      log_checkpoint_metadata=True,
         #      init_kwargs=dict(project='SyreaNetUIE',
-        #                       name='unet2_trans-syn_uie-back')
+        #                       name='unet2_trans-syn_uie-back_pe')
         #      )
     ])
 
@@ -38,8 +38,8 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[20, 90, 130])
-runner = dict(type='EpochBasedRunner', max_epochs=150)
+    step=[10, 35, 55])
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
@@ -53,13 +53,42 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (256, 256) #(620, 460)
+img_scale = (256, 256) #(620, 460) (w, h)
 crop_size = (256, 256)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
     dict(type='LoadBackFromFile'),
+    dict(type='Resize', img_scale=img_scale, keep_ratio=False),
+    # dict(type='RandomCrop',
+    #      crop_type='absolute',
+    #      crop_size=crop_size,
+    #      recompute_bbox=True,
+    #      allow_negative_crop=True),
+    dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='Normalize', **img_norm_cfg),
+    dict(type='SyreaFormatBundle'),
+    dict(type='Collect', keys=['img', 'input', 'back', 'target'])
+]
+
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadSynthesisFromFile'),
+    dict(type='LoadBackFromFile'),
+    # dict(
+    #     type='MultiScaleFlipAug',
+    #     img_scale=[(256, 256), (384, 256), (384, 384)],
+    #     flip=False,
+    #     transforms=[
+    #         dict(type='Resize', img_scale=[(256, 256), (384, 256), (384, 384)], keep_ratio=False),
+    #         dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    #         dict(type='RandomFlip', flip_ratio=0.5),
+    #         dict(type='Normalize', **img_norm_cfg),
+    #         dict(type='SyreaFormatBundle'),
+    #         dict(type='Collect', keys=['img', 'input', 'back', 'target'])
+    #     ]),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
     # dict(type='RandomCrop',
     #      crop_type='absolute',
@@ -101,7 +130,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=4,
-    workers_per_gpu=0,
+    workers_per_gpu=16,
     train=dict(
         type=dataset_type,
         ann_file=data_root+'train_infos.json',
