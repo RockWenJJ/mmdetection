@@ -79,17 +79,18 @@ val_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
     dict(type='LoadBackFromFile'),
-    dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    # dict(type='CenterCrop',
-    #      crop_type='absolute',
-    #      crop_size=crop_size,
-    #      recompute_bbox=True,
-    #      allow_negative_crop=True),
-    dict(type='RandomFlip', flip_ratio=0.),
-    dict(type='Normalize', **img_norm_cfg),
-    # dict(type='Pad', size_divisor=32),
-    dict(type='SyreaFormatBundle'),
-    dict(type='Collect', keys=['img', 'input', 'back', 'target'])
+    dict(
+        type='MultiScaleFlipAug',
+        img_scale=[(256, 256)],
+        flip=False,
+        transforms=[
+            dict(type='Resize', img_scale=[(256, 256)], keep_ratio=False),
+            dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+            dict(type='RandomFlip', flip_ratio=0.5),
+            dict(type='Normalize', **img_norm_cfg),
+            dict(type='SyreaFormatBundle'),
+            dict(type='Collect', keys=['img', 'input', 'back', 'target'])
+        ])
 ]
 
 test_pipeline = [
