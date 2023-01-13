@@ -163,7 +163,7 @@ class TransformerEncoder(BaseModule):
                  embed_dims=96,
                  patch_size=4,
                  mlp_ratio=4,
-                 depths=(2, 2, 2, 2),
+                 depths=(2, 3, 3, 2),
                  strides=(4, 2, 2, 2),
                  num_heads=(3, 3, 6, 3),
                  out_indices=(0, 1, 2, 3),

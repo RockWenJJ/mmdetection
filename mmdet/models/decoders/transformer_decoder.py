@@ -21,7 +21,7 @@ class TransformerDecoder(BaseModule):
     def __init__(self,
                  embed_dims=768,
                  mlp_ratio=4,
-                 depths=(2, 2, 2, 2),
+                 depths=(2, 3, 3, 2),
                  strides=(2, 2, 2, 2),
                  num_heads=(3, 6, 3, 3),
                  out_indices=(3,),

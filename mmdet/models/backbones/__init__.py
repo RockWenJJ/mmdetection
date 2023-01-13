@@ -20,6 +20,7 @@ from .transformer_encoder import TransformerEncoder, TransformerEncoder2
 from .trident_resnet import TridentResNet
 from .encoder import Encoder
 from .vgg import VGG
+from .conv_trans_encoder import ConvTransformerEncoder
 
 __all__ = [
     'RegNet', 'ResNet', 'ResNetV1d', 'ResNeXt', 'SSDVGG', 'HRNet',
@@ -27,5 +28,5 @@ __all__ = [
     'DetectoRS_ResNeXt', 'Darknet', 'ResNeSt', 'TridentResNet', 'CSPDarknet',
     'SwinTransformer', 'PyramidVisionTransformer',
     'PyramidVisionTransformerV2', 'EfficientNet', 'Encoder', 'ResNetVx', 'ResNetVx2',
-    'VGG', 'TransformerEncoder'
+    'VGG', 'TransformerEncoder', 'ConvTransformerEncoder'
 ]
