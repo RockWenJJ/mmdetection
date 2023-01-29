@@ -14,18 +14,7 @@ model = dict(
         
         ),
     decoder=dict(
-        type='ConvTransformerDecoder',
-        # in_chs0=(768, 576, 384),
-        # in_chs1=(384, 192, 96),
-        # out_chs=(576, 384, 256),
-        # kernel_sizes=(3, 3, 3),
-        # strides=(1, 1, 1),
-        # paddings=(1, 1, 1),
-        # reflect_padding=False,  # align with SwinTransformer
-        # instance_norm=False,  # align with SwinTransformer
-        # out_indices=(0, 1, 2),
-        # concat=True,
-        # upsample_cfg=dict(type='UpsampleLayer', bilinear=False),
+        type='ConvDecoder',
         out_cfg=dict(
             type='BaseSwinHead',
             in_ch=96,
@@ -49,7 +38,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='SwinUIE',
-                              name='unet2_cnn-trans_uie_0114')
+                              name='unet2_conv-trans_uie_0129')
              )
     ])
 
