@@ -704,6 +704,8 @@ class SwinTransformer(BaseModule):
             # strip prefix of state_dict
             if list(state_dict.keys())[0].startswith('module.'):
                 state_dict = {k[7:]: v for k, v in state_dict.items()}
+            if list(state_dict.keys())[0].startswith('encoder.'):
+                state_dict = {k[8:]: v for k, v in state_dict.items()}
 
             # reshape absolute position embedding
             if state_dict.get('absolute_pos_embed') is not None:

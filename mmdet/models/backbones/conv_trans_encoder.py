@@ -679,6 +679,9 @@ class ConvTransformerEncoder(BaseModule):
             layer = build_norm_layer(norm_cfg, self.num_features[i])[1]
             layer_name = f'norm{i}'
             self.add_module(layer_name, layer)
+        
+        # add ReLU after swinblocksquence
+        self.relu = nn.ReLU(inplace=True)
 
     def train(self, mode=True):
         """Convert the model into training mode while keep layers freezed."""
@@ -782,7 +785,8 @@ class ConvTransformerEncoder(BaseModule):
         outs = []
         for i, stage in enumerate(self.stages):
             x_trans, x_cnn, hw_shape = patch_split(x, hw_shape, False)
-            x_trans, hw_shape, out, out_hw_shape = stage[0](x_trans, hw_shape) # process transformer feature
+            x_trans, hw_shape, _, out_hw_shape = stage[0](x_trans, hw_shape) # process transformer feature
+            x_trans = self.relu(x_trans)
             x_cnn = stage[1](x_cnn)    # process cnn feature
             x_cnn_view = x_cnn.flatten(2).transpose(1, 2)
             
