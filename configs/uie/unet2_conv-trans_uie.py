@@ -38,7 +38,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='SwinUIE',
-                              name='unet2_conv-trans_uie_0129')
+                              name='unet2_conv-trans_uie_0201')
              )
     ])
 
