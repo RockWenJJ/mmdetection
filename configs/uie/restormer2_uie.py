@@ -4,16 +4,16 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='Restormer',
+    type='Restormer2',
     inp_channels=3,
     out_channels=3,
     dim=48,
-    # num_blocks=[4, 6, 6, 8],
-    num_blocks=[2, 3, 3, 4],
+    num_blocks=[4, 6, 6, 8],
+    # num_blocks=[2, 3, 3, 4],
     num_refinement_blocks=4,
     heads=[1, 2, 4, 8],
     # ffn_expansion_factor=2.66,
-    ffn_expansion_factor=0.5,
+    ffn_expansion_factor=1.0,
     bias=False,
     LayerNorm_type='WithBias',  ## Other option 'BiasFree'
     dual_pixel_task=False,  ## True for dual-pixel defocus deblurring only. Also set inp_channels=6
@@ -24,20 +24,21 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=2000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023',
-        #                       name='restormer_uie')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='ICCV2023',
+                              name='restormer2_uie')
+             )
     ])
 
 # overwrite schedule
 # optimizer
 # optimizer = dict(type='Adam', lr=0.02, weight_decay=0.0001)
-optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=0.01, norm_type=2))
+# optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=0.01, norm_type=2))
+optimizer_config = dict(grad_clip=None)
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 # optimizer_config = dict(grad_clip=None)
 # default decay ratio: gamma:0.1, min_lr: None
@@ -46,7 +47,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[10, 50, 80])
+    step=[50, 80])
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
@@ -108,8 +109,8 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=0,
+    samples_per_gpu=8,
+    workers_per_gpu=16,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'train_infos.json',

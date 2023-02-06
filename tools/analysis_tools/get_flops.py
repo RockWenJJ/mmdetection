@@ -11,7 +11,8 @@ try:
     from mmcv.cnn import get_model_complexity_info
 except ImportError:
     raise ImportError('Please upgrade mmcv to >0.6.2')
-
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')

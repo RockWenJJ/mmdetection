@@ -7,6 +7,7 @@ from collections import OrderedDict
 from mmcv.runner import BaseModule
 from einops import rearrange
 from ..builder import DETECTORS, build_loss
+from ..utils import DownSampleLayer
 
 ##########################################################################
 ## Layer Norm
@@ -93,22 +94,26 @@ class FeedForward(nn.Module):
 
 ##########################################################################
 ## Multi-DConv Head Transposed Self-Attention (MDTA)
-class Attention(nn.Module):
+class ChannelWiseSelfAttention(nn.Module):
     def __init__(self, dim, num_heads, bias):
-        super(Attention, self).__init__()
+        super(ChannelWiseSelfAttention, self).__init__()
         self.num_heads = num_heads
-        self.temperature = nn.Parameter(torch.ones(num_heads, 1, 1))
+        # self.temperature = nn.Parameter(torch.ones(num_heads, 1, 1))
 
         self.qkv = nn.Conv2d(dim, dim * 3, kernel_size=1, bias=bias)
         self.qkv_dwconv = nn.Conv2d(dim * 3, dim * 3, kernel_size=3, stride=1, padding=1, groups=dim * 3, bias=bias)
         self.project_out = nn.Conv2d(dim, dim, kernel_size=1, bias=bias)
-
+        
+        self.qk_pool = nn.AdaptiveAvgPool2d((7, 7))
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         qkv = self.qkv_dwconv(self.qkv(x))
         q, k, v = qkv.chunk(3, dim=1)
+        
+        q = self.qk_pool(q)
+        k = self.qk_pool(k)
 
         q = rearrange(q, 'b (head c) h w -> b head c (h w)', head=self.num_heads)
         k = rearrange(k, 'b (head c) h w -> b head c (h w)', head=self.num_heads)
@@ -117,8 +122,7 @@ class Attention(nn.Module):
         q = torch.nn.functional.normalize(q, dim=-1)
         k = torch.nn.functional.normalize(k, dim=-1)
 
-        # attn = self.attn_op(q, k.transpose(-2, -1)) * self.temperature
-        attn = (q @ k.transpose(-2, -1)) * self.temperature
+        attn = (q @ k.transpose(-2, -1))
 
         attn = attn.softmax(dim=-1)
 
@@ -129,76 +133,53 @@ class Attention(nn.Module):
         out = self.project_out(out)
         return out
 
-
-# class Attention(nn.Module):
-#     def __init__(self, dim, num_heads, bias):
-#         super(Attention, self).__init__()
-#         self.num_heads = num_heads
-#         self.temperature = nn.Parameter(torch.ones(num_heads, 1, 1))
-#
-#         self.qkv = nn.Linear(dim, dim * 3)
-#
-#         # self.qkv = nn.Conv2d(dim, dim * 3, kernel_size=1, bias=bias)
-#         # self.qkv_dwconv = nn.Conv2d(dim * 3, dim * 3, kernel_size=3, stride=1, padding=1, groups=dim * 3, bias=bias)
-#         self.project_out = nn.Conv2d(dim, dim, kernel_size=1, bias=bias)
-#
-#         # # modified by wenjj
-#         # self.q_pool = nn.AdaptiveAvgPool2d((7, 7))
-#         # self.k_pool = nn.AdaptiveAvgPool2d((7, 7))
-#
-#     def forward(self, x):
-#         b, c, h, w = x.shape
-#         x = rearrange(x, 'b c h w -> b (h w) c')
-#         qkv = self.qkv(x)
-#         q, k, v = qkv.chunk(3, dim=2)
-#
-#         attn = (q @ k.transpose(-2, -1)).softmax(dim=-1)
-#
-#         out = attn @ v
-#
-#         out = rearrange(out, 'b (h w) c -> b c h w', h=h, w=w)
-#
-#
-#
-#         # # qkv = self.qkv_dwconv(self.qkv(x))
-#         # # q, k, v = qkv.chunk(3, dim=1)
-#         #
-#         # # # modified by wenjj
-#         # # q, k = self.q_pool(q), self.k_pool(k)
-#         #
-#         # q = rearrange(q, 'b (head c) h w -> b head c (h w)', head=self.num_heads)
-#         # k = rearrange(k, 'b (head c) h w -> b head c (h w)', head=self.num_heads)
-#         # v = rearrange(v, 'b (head c) h w -> b head c (h w)', head=self.num_heads)
-#         #
-#         # q = torch.nn.functional.normalize(q, dim=-1)
-#         # k = torch.nn.functional.normalize(k, dim=-1)
-#         #
-#         # attn = (q @ k.transpose(-2, -1)) * self.temperature
-#         #
-#         # attn = attn.softmax(dim=-1)
-#         #
-#         # out = (attn @ v)
-#         #
-#         # out = rearrange(out, 'b head c (h w) -> b (head c) h w', head=self.num_heads, h=h, w=w)
-#
-#         out = self.project_out(out)
-#         return out
+class PixelWiseSelfAttention(nn.Module):
+    def __init__(self, dim, num_heads, bias):
+        super(PixelWiseSelfAttention, self).__init__()
+        self.num_heads = num_heads
+        self.pool = nn.AdaptiveAvgPool2d((17, 17))
+        self.qkv = nn.Linear(dim, dim * 3)
+        self.weight = nn.Parameter(torch.ones(64, 64))
+    
+    def forward(self, x):
+        b, c, h, w = x.shape
+        x_ave = self.pool(x)
+        # x = rearrange(x, 'b c h w -> b (h w) c')
+        x_ave = rearrange(x_ave, 'b c h w -> b (h w) c')
+        qkv = self.qkv(x_ave)
+        q_ave, k_ave, v_ave = qkv.chunk(3, dim=2)
+        
+        attn_ave = (q_ave @ k_ave.transpose(-2, -1)).softmax(dim=-1)
+        # attn = F.interpolate(attn_ave, mode='bilinear', size=(h*w, h*w))
+        
+        out_ave = attn_ave @ x_ave
+        out_ave = rearrange(out_ave, 'b (h w) c -> b c h w', h=17, w=17)
+        out = F.interpolate(out_ave, mode='bilinear', size=(h, w))
+        weight = F.interpolate(self.weight[None, None, ...], mode='bilinear', size=(h, w))
+        
+        out = x + weight * out
+        
+        # out = rearrange(out, 'b (h w) c -> b c h w', h=h, w=w)
+        return out
 
 
 ##########################################################################
-
 class TransformerBlock(nn.Module):
     def __init__(self, dim, num_heads, ffn_expansion_factor, bias, LayerNorm_type):
         super(TransformerBlock, self).__init__()
         
         self.norm1 = LayerNorm(dim, LayerNorm_type)
-        self.attn = Attention(dim, num_heads, bias)
+        self.c_attn = ChannelWiseSelfAttention(dim, num_heads, bias)
         self.norm2 = LayerNorm(dim, LayerNorm_type)
+        self.p_attn = PixelWiseSelfAttention(dim, num_heads, bias)
+        self.norm3 = LayerNorm(dim, LayerNorm_type)
         self.ffn = FeedForward(dim, ffn_expansion_factor, bias)
     
     def forward(self, x):
-        x = x + self.attn(self.norm1(x))
-        x = x + self.ffn(self.norm2(x))
+        x1 = self.c_attn(self.norm1(x))
+        x2 = self.p_attn(self.norm2(x))
+        x = x + x1 + x2
+        x = x + self.ffn(self.norm3(x))
         
         return x
 
@@ -210,9 +191,15 @@ class OverlapPatchEmbed(nn.Module):
         super(OverlapPatchEmbed, self).__init__()
         
         self.proj = nn.Conv2d(in_c, embed_dim, kernel_size=3, stride=1, padding=1, bias=bias)
+        
+        self.proj = nn.Sequential(nn.ReflectionPad2d(1),
+                nn.Conv2d(in_c, embed_dim, kernel_size=3, stride=1, padding=0),
+                nn.InstanceNorm2d(embed_dim),
+                nn.ReLU(inplace=True))
+        self.downsample = DownSampleLayer(True, embed_dim)
     
     def forward(self, x):
-        x = self.proj(x)
+        x = self.downsample(self.proj(x))
         
         return x
 
@@ -244,7 +231,7 @@ class Upsample(nn.Module):
 ##########################################################################
 ##---------- Restormer -----------------------
 @DETECTORS.register_module()
-class Restormer(BaseModule):
+class Restormer2(BaseModule):
     def __init__(self,
                  inp_channels=3,
                  out_channels=3,
@@ -261,7 +248,7 @@ class Restormer(BaseModule):
                  **kwargs
                  ):
         
-        super(Restormer, self).__init__()
+        super(Restormer2, self).__init__()
         
         self.patch_embed = OverlapPatchEmbed(inp_channels, dim)
         
@@ -312,7 +299,8 @@ class Restormer(BaseModule):
             self.skip_conv = nn.Conv2d(dim, int(dim * 2 ** 1), kernel_size=1, bias=bias)
         ###########################
         
-        self.output = nn.Conv2d(int(dim * 2 ** 1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias)
+        self.final_up = Upsample(int(dim * 2 ** 1))
+        self.output = nn.Conv2d(int(dim), out_channels, kernel_size=1, stride=1, padding=0, bias=bias)
         
         self.l1_loss = build_loss(loss_cfg)
         self.multi_scales = False
@@ -342,14 +330,6 @@ class Restormer(BaseModule):
     
         if self.multi_scales:
             raise NotImplementedError
-            # assert len(xs) == len(img)
-            # images_dict['predict'] = xs[-1]
-            # images_dict['target'] = img[-1]
-            # for x, im in zip(xs, img):
-            #     layer_loss = self.head.loss(x, im, img_metas)
-            #     for k, v in layer_loss.items():
-            #         losses[k] = losses[k] + v if k in losses else v
-            # # losses.update(self.head.loss(x, img, img_metas))
         else:
             images_dict['predict'] = xs[-1]
             images_dict['target'] = img
@@ -358,11 +338,8 @@ class Restormer(BaseModule):
         return losses, images_dict
     
     def forward_test(self, img, img_metas=None, **kwargs):
-        # input_img = kwargs['input']
         input_img = img
         xs = self.forward_img(input_img)
-        # result = dict()
-        # result['predict'] = x
         return xs[-1]
 
     def forward_dummy(self, img):
@@ -405,7 +382,8 @@ class Restormer(BaseModule):
             out_dec_level1 = self.output(out_dec_level1)
         ###########################
         else:
-            out_dec_level1 = self.output(out_dec_level1) + inp_img
+            out_dec_level1 = self.output(self.final_up(out_dec_level1)) + inp_img
+            # out_dec_level1 = self.output(self.final_up(out_dec_level1))
         
         return tuple([out_dec_level1])
 
