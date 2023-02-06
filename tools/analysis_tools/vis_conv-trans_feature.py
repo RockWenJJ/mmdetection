@@ -41,3 +41,10 @@ for img in tqdm(imgs):
         plt.close()
     # print(vgg_feats)
 
+def plot_feat_trans(feat_trans, hw_shape):
+    print(feat_trans.max(), feat_trans.min())
+    import matplotlib.pyplot as plt
+    feat_trans = feat_trans.view(-1, *hw_shape, feat_trans.shape[-1]).permute(0, 3, 1, 2).contiguous()
+    feat_trans = torch.mean(feat_trans, 1).detach().cpu().squeeze().data
+    plt.imshow(feat_trans)
+    plt.show()
