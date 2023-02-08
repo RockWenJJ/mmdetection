@@ -50,6 +50,8 @@ from .mae import MaskedAutoencoderViT
 from .unet2 import UNet2
 from .restormer import Restormer
 from .restormer2 import Restormer2
+from .restormer3 import Restormer3
+from .uformer import Uformer
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -61,5 +63,5 @@ __all__ = [
     'SOLOv2', 'DeformableDETR', 'AutoAssign', 'YOLOF', 'CenterNet', 'YOLOX',
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
     'MaskFormer', 'DDOD', 'Mask2Former', 'UNet', 'FasterUIE', 'MaskedAutoencoderViT',
-    'UNet2', 'Restormer', 'Restormer2'
+    'UNet2', 'Restormer', 'Restormer2', 'Restormer3', 'Uformer'
 ]
