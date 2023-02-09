@@ -11,9 +11,9 @@ def fft_loss(pred, target, reduction=True):
     pred_fft = fft.fftn(pred, dim=(2, 3))
     targ_fft = fft.fftn(target, dim=(2, 3))
     if reduction:
-        loss = torch.mean(torch.log(torch.abs(pred_fft - targ_fft)))
+        loss = torch.mean(torch.log(torch.abs(pred_fft - targ_fft)+1.0))
     else:
-        loss = torch.sum(torch.log(torch.abs(pred_fft - targ_fft)))
+        loss = torch.sum(torch.log(torch.abs(pred_fft - targ_fft)+1.0))
     return loss
 
 @LOSSES.register_module()
