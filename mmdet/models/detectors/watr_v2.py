@@ -33,7 +33,7 @@ class ConvLayer(BaseModule):
         super(ConvLayer, self).__init__()
         self.layers = []
         conv_type = 'CIR' if instance_norm else 'CBR'
-
+        
         layer = []
         layer_cfg = {'type': conv_type,
                      'in_ch': in_ch,
@@ -47,7 +47,7 @@ class ConvLayer(BaseModule):
         layer_cfg['in_ch'] = out_ch
         layer.append(build_layer(layer_cfg))
         self.layer = nn.Sequential(*layer)
-        
+    
     def forward(self, x, hw_shape):
         B, L, C = x.shape
         H, W = hw_shape
@@ -56,7 +56,8 @@ class ConvLayer(BaseModule):
         x = self.layer(x)
         x = rearrange(x, 'b c h w -> b (h w) c')
         return x, hw_shape
-    
+
+
 class SepConv2d(torch.nn.Module):
     def __init__(self,
                  in_channels,
@@ -92,7 +93,8 @@ class SepConv2d(torch.nn.Module):
         flops += HW * self.in_channels * self.out_channels
         print("SeqConv2d:{%.2f}" % (flops / 1e9))
         return flops
-    
+
+
 ######## Embedding for q,k,v ########
 class ConvProjection(nn.Module):
     def __init__(self, dim, heads=8, dim_head=64, kernel_size=3, q_stride=1, k_stride=1, v_stride=1, dropout=0.,
@@ -391,6 +393,7 @@ class GatedFeedForward(nn.Module):
         x = rearrange(x, ' b c h w -> b (h w) c', h=h, w=w)
         return x
 
+
 #########################################
 ########### window operation#############
 def window_partition(x, win_size, dilation_rate=1):
@@ -427,7 +430,7 @@ class Downsample(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(Downsample, self).__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channel, out_channel, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(in_channel, out_channel, kernel_size=2, stride=2, padding=1),
         )
         self.in_channel = in_channel
         self.out_channel = out_channel
@@ -436,9 +439,6 @@ class Downsample(nn.Module):
         B, L, C = x.shape
         H, W = hw_shape
         assert L == H * W
-        # # import pdb;pdb.set_trace()
-        # H = int(math.sqrt(L))
-        # W = int(math.sqrt(L))
         x = x.transpose(1, 2).contiguous().view(B, C, H, W)
         x = self.conv(x)
         hw_shape = x.shape[-2:]
@@ -578,14 +578,16 @@ class LeWinTransformerBlock(nn.Module):
         else:
             self.modulator = None
         
-        if cross_modulator:
-            self.cross_modulator = nn.Embedding(win_size * win_size, dim)  # cross_modulator
-            self.cross_attn = Attention(dim, num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop,
-                                        proj_drop=drop,
-                                        token_projection=token_projection, )
-            self.norm_cross = norm_layer(dim)
-        else:
-            self.cross_modulator = None
+        # if cross_modulator:
+        #     self.cross_modulator = nn.Embedding(win_size * win_size, dim)  # cross_modulator
+        #     self.cross_attn = Attention(dim, num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop,
+        #                                 proj_drop=drop,
+        #                                 token_projection=token_projection, )
+        #     self.norm_cross = norm_layer(dim)
+        # else:
+        #     self.cross_modulator = None
+        
+        self.cross_modulator = None
         
         self.norm1 = norm_layer(dim)
         self.attn = WindowAttention(
@@ -612,11 +614,11 @@ class LeWinTransformerBlock(nn.Module):
         B, L, C = x.shape
         H, W = hw_shape
         assert L == H * W
-
+        
         shortcut = x
         x = self.norm1(x)
         x = x.view(B, H, W, C)
-
+        
         # pad feature maps to multiples of window size
         pad_r = (self.win_size - W % self.win_size) % self.win_size
         pad_b = (self.win_size - H % self.win_size) % self.win_size
@@ -655,11 +657,11 @@ class LeWinTransformerBlock(nn.Module):
             shifted_x = x
             attn_mask = None
         
-        if self.cross_modulator is not None:
-            shortcut = x
-            x_cross = self.norm_cross(x)
-            x_cross = self.cross_attn(x_cross, self.cross_modulator.weight)
-            x = shortcut + x_cross
+        # if self.cross_modulator is not None:
+        #     shortcut = x
+        #     x_cross = self.norm_cross(x)
+        #     x_cross = self.cross_attn(x_cross, self.cross_modulator.weight)
+        #     x = shortcut + x_cross
         
         # partition windows
         x_windows = window_partition(shifted_x, self.win_size)  # nW*B, win_size, win_size, C  N*C->C
@@ -773,7 +775,7 @@ class BasicUformerLayer(nn.Module):
 
 
 @DETECTORS.register_module()
-class WaTrV1(BaseModule):
+class WaTrV2(BaseModule):
     def __init__(self, img_size=128, in_chans=3, dd_in=3,
                  embed_dim=32, depths=[2, 2, 2, 2, 2, 2, 2, 2, 2], num_heads=[1, 2, 4, 8, 16, 16, 8, 4, 2],
                  win_size=8, mlp_ratio=4., qkv_bias=True, qk_scale=None,
@@ -957,70 +959,53 @@ class WaTrV1(BaseModule):
                                                 token_projection=token_projection, token_mlp=token_mlp,
                                                 shift_flag=shift_flag,
                                                 modulator=modulator, cross_modulator=cross_modulator)
-        # self.decoderlayer_1 = ConvLayer(in_ch=embed_dim * 8,
-        #                                 out_ch=embed_dim * 8,
+        self.upsample_2 = upsample(embed_dim * 8, embed_dim * 2)
+        self.decoderlayer_2 = BasicUformerLayer(dim=embed_dim * 4,
+                                                output_dim=embed_dim * 4,
+                                                input_resolution=(img_size // 2,
+                                                                  img_size // 2),
+                                                depth=depths[7],
+                                                num_heads=num_heads[7],
+                                                win_size=win_size,
+                                                mlp_ratio=self.mlp_ratio,
+                                                qkv_bias=qkv_bias, qk_scale=qk_scale,
+                                                drop=drop_rate, attn_drop=attn_drop_rate,
+                                                drop_path=dec_dpr[sum(depths[5:7]):sum(depths[5:8])],
+                                                norm_layer=norm_layer,
+                                                use_checkpoint=use_checkpoint,
+                                                token_projection=token_projection, token_mlp=token_mlp,
+                                                shift_flag=shift_flag,
+                                                modulator=modulator, cross_modulator=cross_modulator)
+        
+        self.upsample_3 = upsample(embed_dim * 4, embed_dim)
+        self.decoderlayer_3 = BasicUformerLayer(dim=embed_dim * 2,
+                                                output_dim=embed_dim * 2,
+                                                input_resolution=(img_size,
+                                                                  img_size),
+                                                depth=depths[8],
+                                                num_heads=num_heads[8],
+                                                win_size=win_size,
+                                                mlp_ratio=self.mlp_ratio,
+                                                qkv_bias=qkv_bias, qk_scale=qk_scale,
+                                                drop=drop_rate, attn_drop=attn_drop_rate,
+                                                drop_path=dec_dpr[sum(depths[5:8]):sum(depths[5:9])],
+                                                norm_layer=norm_layer,
+                                                use_checkpoint=use_checkpoint,
+                                                token_projection=token_projection, token_mlp=token_mlp,
+                                                shift_flag=shift_flag,
+                                                modulator=modulator, cross_modulator=cross_modulator)
+        # self.decoderlayer_3 = ConvLayer(in_ch=embed_dim * 2,
+        #                                 out_ch=embed_dim * 2,
         #                                 kernel_size=3,
         #                                 stride=1,
         #                                 padding=1,
         #                                 reflect_padding=True,
         #                                 instance_norm=True
         #                                 )
-        self.upsample_2 = upsample(embed_dim * 8, embed_dim * 2)
-        # self.decoderlayer_2 = BasicUformerLayer(dim=embed_dim * 4,
-        #                                         output_dim=embed_dim * 4,
-        #                                         input_resolution=(img_size // 2,
-        #                                                           img_size // 2),
-        #                                         depth=depths[7],
-        #                                         num_heads=num_heads[7],
-        #                                         win_size=win_size,
-        #                                         mlp_ratio=self.mlp_ratio,
-        #                                         qkv_bias=qkv_bias, qk_scale=qk_scale,
-        #                                         drop=drop_rate, attn_drop=attn_drop_rate,
-        #                                         drop_path=dec_dpr[sum(depths[5:7]):sum(depths[5:8])],
-        #                                         norm_layer=norm_layer,
-        #                                         use_checkpoint=use_checkpoint,
-        #                                         token_projection=token_projection, token_mlp=token_mlp,
-        #                                         shift_flag=shift_flag,
-        #                                         modulator=modulator, cross_modulator=cross_modulator)
-        self.decoderlayer_2 = ConvLayer(in_ch=embed_dim * 4,
-                                        out_ch=embed_dim * 4,
-                                        kernel_size=3,
-                                        stride=1,
-                                        padding=1,
-                                        reflect_padding=True,
-                                        instance_norm=True
-                                        )
-        
-        self.upsample_3 = upsample(embed_dim * 4, embed_dim)
-        # self.decoderlayer_3 = BasicUformerLayer(dim=embed_dim * 2,
-        #                                         output_dim=embed_dim * 2,
-        #                                         input_resolution=(img_size,
-        #                                                           img_size),
-        #                                         depth=depths[8],
-        #                                         num_heads=num_heads[8],
-        #                                         win_size=win_size,
-        #                                         mlp_ratio=self.mlp_ratio,
-        #                                         qkv_bias=qkv_bias, qk_scale=qk_scale,
-        #                                         drop=drop_rate, attn_drop=attn_drop_rate,
-        #                                         drop_path=dec_dpr[sum(depths[5:8]):sum(depths[5:9])],
-        #                                         norm_layer=norm_layer,
-        #                                         use_checkpoint=use_checkpoint,
-        #                                         token_projection=token_projection, token_mlp=token_mlp,
-        #                                         shift_flag=shift_flag,
-        #                                         modulator=modulator, cross_modulator=cross_modulator)
-        self.decoderlayer_3 = ConvLayer(in_ch=embed_dim * 2,
-                                        out_ch=embed_dim * 2,
-                                        kernel_size=3,
-                                        stride=1,
-                                        padding=1,
-                                        reflect_padding=True,
-                                        instance_norm=True
-                                        )
         
         self.apply(self._init_weights)
         
         self.l1_loss = build_loss(dict(type='L1Loss', loss_weight=1.0))
-        self.ssim_loss = build_loss(dict(type='SSIMLoss', loss_weight=1.0))
         self.multi_scales = False
     
     def _init_weights(self, m):
@@ -1195,16 +1180,14 @@ class WaTrV1(BaseModule):
     
     def loss_single(self, pred, gt):
         loss_l1 = self.l1_loss(pred, gt)
-        loss_ssim = self.ssim_loss(pred, gt)
-        return loss_l1, loss_ssim
+        return loss_l1
     
     def loss(self, preds, gts, img_metas, suffix=None):
-        loss_l1, loss_ssim = self.loss_single(preds, gts)
+        loss_l1 = self.loss_single(preds, gts)
         
         if suffix is None:
-            return dict(loss_l1=loss_l1, loss_ssim=loss_ssim)
+            return dict(loss_l1=loss_l1)
         else:
             loss_dict = dict()
             loss_dict[f'loss_l1_{suffix}'] = loss_l1
-            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
             return loss_dict
