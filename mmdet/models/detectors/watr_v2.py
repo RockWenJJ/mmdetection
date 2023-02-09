@@ -429,8 +429,19 @@ def window_reverse(windows, win_size, H, W, dilation_rate=1):
 class Downsample(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(Downsample, self).__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channel, out_channel, kernel_size=2, stride=2, padding=1),
+        self.down1 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channel, out_channel//2, kernel_size=4, stride=2, padding=0),
+            nn.InstanceNorm2d(out_channel // 2),
+        )
+        self.down2 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channel, out_channel//4, kernel_size=3, stride=1, padding=0),
+            nn.PixelUnshuffle(2),
+            nn.InstanceNorm2d(out_channel),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
+            nn.InstanceNorm2d(out_channel //2 )
         )
         self.in_channel = in_channel
         self.out_channel = out_channel
@@ -440,7 +451,9 @@ class Downsample(nn.Module):
         H, W = hw_shape
         assert L == H * W
         x = x.transpose(1, 2).contiguous().view(B, C, H, W)
-        x = self.conv(x)
+        x1 = self.down1(x)
+        x2 = self.down2(x)
+        x = torch.cat([x1, x2], dim=1)
         hw_shape = x.shape[-2:]
         out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
         return out, hw_shape
@@ -453,12 +466,20 @@ class Downsample(nn.Module):
         return flops
 
 
-# Upsample Block
+# Upsample Module
 class Upsample(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(Upsample, self).__init__()
-        self.deconv = nn.Sequential(
+        self.deconv1 = nn.Sequential(
             nn.ConvTranspose2d(in_channel, out_channel, kernel_size=2, stride=2),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(out_channel, out_channel//2, kernel_size=3, stride=1, padding=0),
+            nn.InstanceNorm2d(out_channel//2)
+        )
+        self.deconv2 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channel, out_channel * 2, kernel_size=3, stride=1, padding=0),
+            nn.PixelShuffle(2)
         )
         self.in_channel = in_channel
         self.out_channel = out_channel
@@ -466,10 +487,10 @@ class Upsample(nn.Module):
     def forward(self, x, hw_shape):
         B, L, C = x.shape
         H, W = hw_shape
-        # H = int(math.sqrt(L))
-        # W = int(math.sqrt(L))
         x = x.transpose(1, 2).contiguous().view(B, C, H, W)
-        x = self.deconv(x)
+        x1 = self.deconv1(x)
+        x2 = self.deconv2(x)
+        x = torch.cat([x1, x2], dim=1)
         hw_shape = x.shape[-2:]
         out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
         return out, hw_shape
@@ -656,12 +677,6 @@ class LeWinTransformerBlock(nn.Module):
         else:
             shifted_x = x
             attn_mask = None
-        
-        # if self.cross_modulator is not None:
-        #     shortcut = x
-        #     x_cross = self.norm_cross(x)
-        #     x_cross = self.cross_attn(x_cross, self.cross_modulator.weight)
-        #     x = shortcut + x_cross
         
         # partition windows
         x_windows = window_partition(shifted_x, self.win_size)  # nW*B, win_size, win_size, C  N*C->C
@@ -1006,6 +1021,7 @@ class WaTrV2(BaseModule):
         self.apply(self._init_weights)
         
         self.l1_loss = build_loss(dict(type='L1Loss', loss_weight=1.0))
+        self.ssim_loss = build_loss(dict(type='SSIMLoss', loss_weight=1.0))
         self.multi_scales = False
     
     def _init_weights(self, m):
@@ -1180,14 +1196,16 @@ class WaTrV2(BaseModule):
     
     def loss_single(self, pred, gt):
         loss_l1 = self.l1_loss(pred, gt)
-        return loss_l1
+        loss_ssim = self.ssim_loss(pred, gt)
+        return loss_l1, loss_ssim
     
     def loss(self, preds, gts, img_metas, suffix=None):
-        loss_l1 = self.loss_single(preds, gts)
+        loss_l1, loss_ssim = self.loss_single(preds, gts)
         
         if suffix is None:
-            return dict(loss_l1=loss_l1)
+            return dict(loss_l1=loss_l1, loss_ssim=loss_ssim)
         else:
             loss_dict = dict()
             loss_dict[f'loss_l1_{suffix}'] = loss_l1
+            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
             return loss_dict

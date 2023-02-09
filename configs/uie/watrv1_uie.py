@@ -11,14 +11,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        dict(type='UIEWandbLoggerHook',
-             interval=50,
-             vis_interval=2000,
-             log_checkpoint=True,
-             log_checkpoint_metadata=True,
-             init_kwargs=dict(project='ICCV2023',
-                              name='watrv1_uie')
-             )
+        # dict(type='UIEWandbLoggerHook',
+        #      interval=50,
+        #      vis_interval=2000,
+        #      log_checkpoint=True,
+        #      log_checkpoint_metadata=True,
+        #      init_kwargs=dict(project='ICCV2023',
+        #                       name='watrv1_uie')
+        #      )
     ])
 
 # overwrite schedule
