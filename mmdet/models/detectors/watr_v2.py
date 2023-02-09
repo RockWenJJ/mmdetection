@@ -1022,6 +1022,7 @@ class WaTrV2(BaseModule):
         
         self.l1_loss = build_loss(dict(type='L1Loss', loss_weight=1.0))
         self.ssim_loss = build_loss(dict(type='SSIMLoss', loss_weight=1.0))
+        self.fft_loss = build_loss(dict(type='FFT2dLoss', loss_weight=0.1))
         self.multi_scales = False
     
     def _init_weights(self, m):
@@ -1197,15 +1198,17 @@ class WaTrV2(BaseModule):
     def loss_single(self, pred, gt):
         loss_l1 = self.l1_loss(pred, gt)
         loss_ssim = self.ssim_loss(pred, gt)
-        return loss_l1, loss_ssim
+        loss_fft = self.fft_loss(pred, gt)
+        return loss_l1, loss_ssim, loss_fft
     
     def loss(self, preds, gts, img_metas, suffix=None):
-        loss_l1, loss_ssim = self.loss_single(preds, gts)
+        loss_l1, loss_ssim, loss_fft = self.loss_single(preds, gts)
         
         if suffix is None:
-            return dict(loss_l1=loss_l1, loss_ssim=loss_ssim)
+            return dict(loss_l1=loss_l1, loss_ssim=loss_ssim, loss_fft=loss_fft)
         else:
             loss_dict = dict()
             loss_dict[f'loss_l1_{suffix}'] = loss_l1
             loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
+            loss_dict[f'loss_fft_{suffix}'] = loss_fft
             return loss_dict
