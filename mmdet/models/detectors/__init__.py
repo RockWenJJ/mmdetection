@@ -54,6 +54,7 @@ from .restormer3 import Restormer3
 from .uformer import Uformer
 from .watr_v1 import WaTrV1
 from .watr_v2 import WaTrV2
+from .watr_v3 import WaTrV3
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -65,5 +66,5 @@ __all__ = [
     'SOLOv2', 'DeformableDETR', 'AutoAssign', 'YOLOF', 'CenterNet', 'YOLOX',
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
     'MaskFormer', 'DDOD', 'Mask2Former', 'UNet', 'FasterUIE', 'MaskedAutoencoderViT',
-    'UNet2', 'Restormer', 'Restormer2', 'Restormer3', 'Uformer', 'WaTrV1', 'WaTrV2'
+    'UNet2', 'Restormer', 'Restormer2', 'Restormer3', 'Uformer', 'WaTrV1', 'WaTrV2', 'WaTrV3'
 ]

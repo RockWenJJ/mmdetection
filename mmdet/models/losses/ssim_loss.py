@@ -65,10 +65,11 @@ class SSIMLoss(nn.Module):
         loss_weight (float, optional): The weight of the loss. Defaults to 1.0
     """
     
-    def __init__(self, reduction='mean', loss_weight=1.0):
+    def __init__(self, reduction='mean', window_size=13, loss_weight=1.0):
         super().__init__()
         self.reduction = reduction
         self.loss_weight = loss_weight
+        self.window_size = window_size
     
     def forward(self,
                 pred,
@@ -96,6 +97,7 @@ class SSIMLoss(nn.Module):
         reduction = (
             reduction_override if reduction_override else self.reduction)
         loss = self.loss_weight * ssim_loss(
-            pred, target, weight, reduction=reduction, avg_factor=avg_factor)
+            pred, target, weight, window_size=self.window_size,
+            reduction=reduction, avg_factor=avg_factor)
         return loss
 

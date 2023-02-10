@@ -17,7 +17,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='ICCV2023',
-                              name='watrv2-fftloss_uie')
+                              name='watrv2-fftloss-finetune_uie')
              )
     ])
 
@@ -35,10 +35,10 @@ lr_config = dict(
     warmup_iters=1000,
     warmup_ratio=0.001,
     step=[50, 80])
-runner = dict(type='EpochBasedRunner', max_epochs=100)
+runner = dict(type='EpochBasedRunner', max_epochs=110)
 
 # overwrite dataset config
-# dataset settings256
+# dataset settings
 dataset_type = 'SynBackDataset'
 data_root = './data/synthesis/'
 real_dataset_type = 'UWDataset'
@@ -49,8 +49,8 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (128, 128)  # (620, 460) (w, h)
-crop_size = (128, 128)
+img_scale = (384, 384)  # (620, 460) (w, h)
+crop_size = (384, 384)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -62,7 +62,7 @@ train_pipeline = [
     #      crop_size=crop_size,
     #      recompute_bbox=True,
     #      allow_negative_crop=True),
-    dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    # dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
@@ -96,7 +96,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=8,
+    samples_per_gpu=2,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,
@@ -115,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=2)
-evaluation = dict(type='UieEvalHook', interval=2)
+checkpoint_config = dict(interval=1)
+evaluation = dict(type='UieEvalHook', interval=1)

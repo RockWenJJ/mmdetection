@@ -17,7 +17,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='ICCV2023',
-                              name='watrv2-fftloss_uie')
+                              name='watrv2_deblur')
              )
     ])
 
@@ -38,9 +38,9 @@ lr_config = dict(
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
-# dataset settings256
+# dataset settings
 dataset_type = 'SynBackDataset'
-data_root = './data/synthesis/'
+data_root = './data/dpdd/'
 real_dataset_type = 'UWDataset'
 real_root = './data/real/'
 # img_norm_cfg = dict(
@@ -62,7 +62,7 @@ train_pipeline = [
     #      crop_size=crop_size,
     #      recompute_bbox=True,
     #      allow_negative_crop=True),
-    dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    # dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
