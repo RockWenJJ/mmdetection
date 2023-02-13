@@ -564,6 +564,10 @@ class OutputProj(nn.Module):
     def __init__(self, in_channel=64, out_channel=3, kernel_size=3, stride=1, norm_layer=None, act_layer=None):
         super().__init__()
         self.proj = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channel, in_channel, kernel_size=3, stride=1, padding=0),
+            nn.InstanceNorm2d(in_channel),
+            nn.LeakyRelu(),
             nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=1, padding=0)
         )
         if act_layer is not None:

@@ -18,7 +18,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='ICCV2023_UIE',
-                              name='watrv3-newdown')
+                              name='watrv3-newoutproj')
              )
     ])
 
