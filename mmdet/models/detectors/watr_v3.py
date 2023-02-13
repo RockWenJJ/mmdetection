@@ -433,20 +433,38 @@ def window_reverse(windows, win_size, H, W, dilation_rate=1):
 class Downsample(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(Downsample, self).__init__()
+        # self.down1 = nn.Sequential(
+        #     nn.ReflectionPad2d(1),
+        #     nn.Conv2d(in_channel, out_channel // 2, kernel_size=4, stride=2, padding=0),
+        #     nn.InstanceNorm2d(out_channel // 2),
+        # )
         self.down1 = nn.Sequential(
+            nn.AvgPool2d(2),
             nn.ReflectionPad2d(1),
-            nn.Conv2d(in_channel, out_channel // 2, kernel_size=4, stride=2, padding=0),
-            nn.InstanceNorm2d(out_channel // 2),
+            nn.Conv2d(in_channel, in_channel, kernel_size=3, stride=1, padding=0, groups=in_channel),
+            nn.Conv2d(in_channel, out_channel//2, kernel_size=1),
+            nn.InstanceNorm2d(out_channel//2)
         )
+        
+        # self.down2 = nn.Sequential(
+        #     nn.ReflectionPad2d(1),
+        #     nn.Conv2d(in_channel, out_channel // 4, kernel_size=3, stride=1, padding=0),
+        #     nn.PixelUnshuffle(2),
+        #     nn.InstanceNorm2d(out_channel),
+        #     nn.ReflectionPad2d(1),
+        #     nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
+        #     nn.InstanceNorm2d(out_channel // 2)
+        # )
+        
         self.down2 = nn.Sequential(
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(in_channel, out_channel // 4, kernel_size=3, stride=1, padding=0),
             nn.PixelUnshuffle(2),
-            nn.InstanceNorm2d(out_channel),
             nn.ReflectionPad2d(1),
-            nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
-            nn.InstanceNorm2d(out_channel // 2)
+            nn.Conv2d(in_channel * 4, in_channel * 4, kernel_size=3, stride=1, padding=0,
+                      groups=in_channel*4),
+            nn.Conv2d(in_channel*4, out_channel //2, kernel_size=1),
+            nn.InstanceNorm2d(out_channel//2)
         )
+        
         self.in_channel = in_channel
         self.out_channel = out_channel
     
@@ -802,7 +820,7 @@ class WaTrV3(BaseModule):
                  norm_layer=nn.LayerNorm, patch_norm=True,
                  use_checkpoint=False, token_projection='linear', token_mlp='gdff',
                  dowsample=Downsample, upsample=Upsample, shift_flag=True, modulator=False,
-                 cross_modulator=False, **kwargs):
+                 cross_modulator=False, connect=False, **kwargs):
         super().__init__()
         
         self.num_enc_layers = len(depths) // 2
@@ -1020,6 +1038,7 @@ class WaTrV3(BaseModule):
         self.ssim_loss = build_loss(dict(type='SSIMLoss', window_size=5, loss_weight=1.0))
         self.fft_loss = build_loss(dict(type='FFT2dLoss', loss_weight=0.1))
         self.multi_scales = False
+        self.connect = connect
     
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1121,7 +1140,10 @@ class WaTrV3(BaseModule):
         # Output Projection
         y, hw_shape = self.output_proj(deconv3, hw_shape)
         # out = x + y if self.dd_in == 3 else y
-        out = y
+        if self.connect:
+            out = x + y
+        else:
+            out = y
         return tuple([out])
     
     def flops(self):
