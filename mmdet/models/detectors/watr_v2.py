@@ -798,7 +798,7 @@ class WaTrV2(BaseModule):
                  norm_layer=nn.LayerNorm, patch_norm=True,
                  use_checkpoint=False, token_projection='linear', token_mlp='gdff',
                  dowsample=Downsample, upsample=Upsample, shift_flag=True, modulator=False,
-                 cross_modulator=False, **kwargs):
+                 cross_modulator=False, connect=False, **kwargs):
         super().__init__()
         
         self.num_enc_layers = len(depths) // 2
@@ -1024,6 +1024,7 @@ class WaTrV2(BaseModule):
         self.ssim_loss = build_loss(dict(type='SSIMLoss', loss_weight=1.0))
         self.fft_loss = build_loss(dict(type='FFT2dLoss', loss_weight=0.1))
         self.multi_scales = False
+        self.connect = connect
     
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1125,7 +1126,10 @@ class WaTrV2(BaseModule):
         # Output Projection
         y, hw_shape = self.output_proj(deconv3, hw_shape)
         # out = x + y if self.dd_in == 3 else y
-        out = y
+        if self.connect:
+            out = x + y
+        else:
+            out = y
         return tuple([out])
     
     def flops(self):
