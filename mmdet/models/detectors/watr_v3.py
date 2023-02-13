@@ -567,7 +567,7 @@ class OutputProj(nn.Module):
             nn.ReflectionPad2d(1),
             nn.Conv2d(in_channel, in_channel, kernel_size=3, stride=1, padding=0),
             nn.InstanceNorm2d(in_channel),
-            nn.LeakyRelu(),
+            nn.LeakyReLU(),
             nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=1, padding=0)
         )
         if act_layer is not None:
