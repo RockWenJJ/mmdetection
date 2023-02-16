@@ -635,6 +635,19 @@ class LeWinTransformerBlock(nn.Module):
         assert L == H * W
         
         shortcut = x
+        
+        # cross window attention
+        x1 = self.norm1(shortcut)
+        x1 = rearrange(x1, 'b (h w) c -> b c h w', h=H, w=W)
+        x1 = self.avg(x1)
+        x1 = rearrange(x1, 'b c h w -> b (h w) c')
+        x1 = self.cw_attn(x1)
+        x1 = rearrange(x1, 'b (h w) c -> b c h w', h=self.win_size, w=self.win_size)
+        x1 = F.interpolate(x1, (H, W))
+        x1 = rearrange(x1, 'b c h w -> b (h w) c')
+        
+        x = shortcut + x1
+        
         x = self.norm1(x)
         x = x.view(B, H, W, C)
         
@@ -703,17 +716,7 @@ class LeWinTransformerBlock(nn.Module):
         
         x = x.view(B, H * W, C)
         
-        # cross window attention
-        x1 = self.norm1(shortcut)
-        x1 = rearrange(x1, 'b (h w) c -> b c h w', h=H, w=W)
-        x1 = self.avg(x1)
-        x1 = rearrange(x1, 'b c h w -> b (h w) c')
-        x1 = self.cw_attn(x1)
-        x1 = rearrange(x1, 'b (h w) c -> b c h w', h=self.win_size, w=self.win_size)
-        x1 = F.interpolate(x1, (H, W))
-        x1 = rearrange(x1, 'b c h w -> b (h w) c')
-        
-        x = x1 + x
+        x = shortcut + x
         
         # FFN
         x = shortcut + self.drop_path(x)
@@ -800,7 +803,7 @@ class BasicUformerLayer(nn.Module):
 
 
 @DETECTORS.register_module()
-class WaTrV4(BaseModule):
+class WaTrV5(BaseModule):
     def __init__(self, img_size=128, in_chans=3, dd_in=3,
                  embed_dim=32, depths=[2, 2, 2, 2, 2, 2, 2, 2, 2], num_heads=[1, 2, 4, 8, 16, 16, 8, 4, 2],
                  win_size=8, mlp_ratio=4., qkv_bias=True, qk_scale=None,

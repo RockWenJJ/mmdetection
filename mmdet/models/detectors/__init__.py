@@ -56,6 +56,7 @@ from .watr_v1 import WaTrV1
 from .watr_v2 import WaTrV2
 from .watr_v3 import WaTrV3
 from .watr_v4 import WaTrV4
+from .watr_v5 import WaTrV5
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -68,5 +69,5 @@ __all__ = [
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
     'MaskFormer', 'DDOD', 'Mask2Former', 'UNet', 'FasterUIE', 'MaskedAutoencoderViT',
     'UNet2', 'Restormer', 'Restormer2', 'Restormer3', 'Uformer', 'WaTrV1', 'WaTrV2',
-    'WaTrV3', 'WaTrV4'
+    'WaTrV3', 'WaTrV4', 'WaTrV5'
 ]

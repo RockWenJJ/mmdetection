@@ -4,7 +4,7 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='WaTrV2',
+    type='WaTrV5',
     connect=True
 )
 
@@ -18,13 +18,13 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='ICCV2023_UIE',
-                              name='watrv2-baseline')
+                              name='watrv5-cw_attn')
              )
     ])
 
 # overwrite schedule
 # optimizer
-# optimizer = dict(type='Adam', lr=0.02, weight_decay=0.0001)
+# optimizer = dict(_delete_=True, type='Adam', lr=0.0001, weight_decay=0.0001)
 # optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=0.01, norm_type=2))
 optimizer_config = dict(grad_clip=None)
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)

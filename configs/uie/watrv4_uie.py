@@ -12,22 +12,22 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=2000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023_UIE',
-        #                       name='watrv3-adam')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='ICCV2023_UIE',
+                              name='watrv4-cw_attn')
+             )
     ])
 
 # overwrite schedule
 # optimizer
-optimizer = dict(_delete_=True, type='Adam', lr=0.0001, weight_decay=0.0001)
+# optimizer = dict(_delete_=True, type='Adam', lr=0.0001, weight_decay=0.0001)
 # optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=0.01, norm_type=2))
 optimizer_config = dict(grad_clip=None)
-# optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 # optimizer_config = dict(grad_clip=None)
 # default decay ratio: gamma:0.1, min_lr: None
 lr_config = dict(
@@ -35,8 +35,8 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[30,])
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+    step=[30, 70, 90])
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
@@ -97,8 +97,8 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=0,
+    samples_per_gpu=8,
+    workers_per_gpu=16,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'train_infos.json',
