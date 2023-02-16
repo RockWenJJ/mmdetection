@@ -676,19 +676,6 @@ class LeWinTransformerBlock(nn.Module):
         
         shortcut = x
         
-        # cross window attention
-        x1 = self.norm1(shortcut)
-        x1 = rearrange(x1, 'b (h w) c -> b c h w', h=H, w=W)
-        x1 = self.c_attn(x1)
-        # x1 = self.avg(x1)
-        # x1 = rearrange(x1, 'b c h w -> b (h w) c')
-        # x1 = self.cw_attn(x1)
-        # x1 = rearrange(x1, 'b (h w) c -> b c h w', h=self.win_size, w=self.win_size)
-        # x1 = F.interpolate(x1, (H, W))
-        x1 = rearrange(x1, 'b c h w -> b (h w) c')
-        
-        x = shortcut + x1
-        
         x = self.norm1(x)
         x = x.view(B, H, W, C)
         
@@ -756,8 +743,21 @@ class LeWinTransformerBlock(nn.Module):
             x = x[:, :H, :W, :].contiguous()
         
         x = x.view(B, H * W, C)
+
+        # cross window attention
+        x1 = self.norm1(shortcut)
+        x1 = rearrange(x1, 'b (h w) c -> b c h w', h=H, w=W)
+        x1 = self.c_attn(x1)
+        # x1 = self.avg(x1)
+        # x1 = rearrange(x1, 'b c h w -> b (h w) c')
+        # x1 = self.cw_attn(x1)
+        # x1 = rearrange(x1, 'b (h w) c -> b c h w', h=self.win_size, w=self.win_size)
+        # x1 = F.interpolate(x1, (H, W))
+        x1 = rearrange(x1, 'b c h w -> b (h w) c')
+
+        x = x + x1
         
-        x = shortcut + x
+        # x = shortcut + x
         
         # FFN
         x = shortcut + self.drop_path(x)
