@@ -377,7 +377,7 @@ class GatedFeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, bias=True):
         super(GatedFeedForward, self).__init__()
         
-        self.project_in = nn.Conv2d(dim, hidden_dim, kernel_size=1, bias=bias)
+        self.project_in = nn.Conv2d(dim * 2, hidden_dim, kernel_size=1, bias=bias)
         
         self.dwconv = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, stride=1, padding=1,
                                 groups=hidden_dim, bias=bias)
@@ -615,7 +615,7 @@ class LeWinTransformerBlock(nn.Module):
             token_projection=token_projection)
         
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        self.norm2 = norm_layer(dim)
+        self.norm2 = norm_layer(dim*2)
         mlp_hidden_dim = int(dim * mlp_ratio)
         if token_mlp == 'gdff':
             self.mlp = GatedFeedForward(dim, mlp_hidden_dim)
@@ -713,11 +713,14 @@ class LeWinTransformerBlock(nn.Module):
         x1 = F.interpolate(x1, (H, W))
         x1 = rearrange(x1, 'b c h w -> b (h w) c')
         
-        x = x1 + x
+        # x = x1 + x
+        
         
         # FFN
+        x1 = shortcut + self.drop_path(x1)
         x = shortcut + self.drop_path(x)
-        x = x + self.drop_path(self.mlp(self.norm2(x), hw_shape))
+        x = torch.cat([x, x1], dim=-1)
+        x = shortcut + self.drop_path(self.mlp(self.norm2(x), hw_shape))
         del attn_mask
         return x, hw_shape
     
