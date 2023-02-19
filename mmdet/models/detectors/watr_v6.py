@@ -634,9 +634,15 @@ class LeWinTransformerBlock(nn.Module):
         assert 0 <= self.shift_size < self.win_size, "shift_size must in 0-win_size"
         
         if modulator:
-            self.modulator = nn.Embedding(win_size * win_size, dim)  # modulator
+            # self.modulator = nn.Embedding(win_size * win_size, dim)  # modulator
+            # 7 different water-types
+            self.adap_pool = nn.AdaptiveAvgPool2d(win_size)
+            self.modulator = nn.Embedding(7, dim)
+            self.adap_ffn = nn.Linear(win_size * win_size * dim, 7)
         else:
+            self.adap_pool = None
             self.modulator = None
+            self.adap_ffn = None
         
         self.cross_modulator = None
         
@@ -721,11 +727,7 @@ class LeWinTransformerBlock(nn.Module):
         x_windows = window_partition(shifted_x, self.win_size)  # nW*B, win_size, win_size, C  N*C->C
         x_windows = x_windows.view(-1, self.win_size * self.win_size, C)  # nW*B, win_size*win_size, C
         
-        # with_modulator
-        if self.modulator is not None:
-            wmsa_in = self.with_pos_embed(x_windows, self.modulator.weight)
-        else:
-            wmsa_in = x_windows
+        wmsa_in = x_windows
         
         attn_windows = self.attn(wmsa_in, mask=attn_mask)  # nW*B, win_size*win_size, C
         
@@ -753,6 +755,17 @@ class LeWinTransformerBlock(nn.Module):
         # x1 = self.cw_attn(x1)
         # x1 = rearrange(x1, 'b (h w) c -> b c h w', h=self.win_size, w=self.win_size)
         # x1 = F.interpolate(x1, (H, W))
+        # with_modulator
+        if self.modulator is not None:
+            x_adap = self.adap_pool(x1)
+            x_adap = x_adap.view(B, -1)
+            water_type = torch.argmax(F.softmax(self.adap_ffn(x_adap)), dim=1)
+            type_embed = self.modulator(water_type)
+            x1 = x1 + type_embed[..., None, None]
+            # wmsa_in = self.with_pos_embed(x_windows, self.modulator.weight)
+        else:
+            x1 = x1
+        
         x1 = rearrange(x1, 'b c h w -> b (h w) c')
 
         # x = x + x1
