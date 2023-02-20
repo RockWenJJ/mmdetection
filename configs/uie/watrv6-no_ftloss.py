@@ -6,7 +6,8 @@ pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.
 model = dict(
     type='WaTrV6',
     connect=True,
-    modulator=True
+    modulator=False,
+    with_ft_loss=False,
 )
 
 log_config = dict(
@@ -19,7 +20,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='ICCV2023_UIE',
-                              name='watrv6-water_adap2')
+                              name='watrv6-no_ftloss')
              )
     ])
 

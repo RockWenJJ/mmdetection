@@ -749,7 +749,7 @@ class LeWinTransformerBlock(nn.Module):
         # cross window attention
         x1 = self.norm1(shortcut)
         x1 = rearrange(x1, 'b (h w) c -> b c h w', h=H, w=W)
-        x1 = self.c_attn(x1)
+        
         # x1 = self.avg(x1)
         # x1 = rearrange(x1, 'b c h w -> b (h w) c')
         # x1 = self.cw_attn(x1)
@@ -758,14 +758,15 @@ class LeWinTransformerBlock(nn.Module):
         # with_modulator
         if self.modulator is not None:
             x_adap = self.adap_pool(x1)
-            x_adap = x_adap.view(B, -1)
+            x_adap = x_adap.reshape(B, -1)
             water_type = torch.argmax(F.softmax(self.adap_ffn(x_adap)), dim=1)
             type_embed = self.modulator(water_type)
             x1 = x1 + type_embed[..., None, None]
             # wmsa_in = self.with_pos_embed(x_windows, self.modulator.weight)
         else:
             x1 = x1
-        
+
+        x1 = self.c_attn(x1)
         x1 = rearrange(x1, 'b c h w -> b (h w) c')
 
         # x = x + x1
@@ -869,7 +870,7 @@ class WaTrV6(BaseModule):
                  norm_layer=nn.LayerNorm, patch_norm=True,
                  use_checkpoint=False, token_projection='linear', token_mlp='gdff',
                  dowsample=Downsample, upsample=Upsample, shift_flag=True, modulator=False,
-                 cross_modulator=False, connect=False, **kwargs):
+                 cross_modulator=False, connect=False, with_ft_loss=True, **kwargs):
         super().__init__()
         
         self.num_enc_layers = len(depths) // 2
@@ -1093,7 +1094,10 @@ class WaTrV6(BaseModule):
         
         self.l1_loss = build_loss(dict(type='L1Loss', loss_weight=1.0))
         self.ssim_loss = build_loss(dict(type='SSIMLoss', loss_weight=1.0))
-        self.fft_loss = build_loss(dict(type='FFT2dLoss', loss_weight=0.1))
+        if with_ft_loss:
+            self.fft_loss = build_loss(dict(type='FFT2dLoss', loss_weight=0.1))
+        else:
+            self.fft_loss = None
         self.multi_scales = False
         self.connect = connect
     
@@ -1273,17 +1277,32 @@ class WaTrV6(BaseModule):
     def loss_single(self, pred, gt):
         loss_l1 = self.l1_loss(pred, gt)
         loss_ssim = self.ssim_loss(pred, gt)
-        loss_fft = self.fft_loss(pred, gt)
-        return loss_l1, loss_ssim, loss_fft
+        if self.fft_loss is not None:
+            loss_fft = self.fft_loss(pred, gt)
+            return loss_l1, loss_ssim, loss_fft
+        else:
+            return loss_l1, loss_ssim
+        
     
     def loss(self, preds, gts, img_metas, suffix=None):
-        loss_l1, loss_ssim, loss_fft = self.loss_single(preds, gts)
-        
-        if suffix is None:
-            return dict(loss_l1=loss_l1, loss_ssim=loss_ssim, loss_fft=loss_fft)
+        if self.fft_loss is not None:
+            loss_l1, loss_ssim, loss_fft = self.loss_single(preds, gts)
+
+            if suffix is None:
+                return dict(loss_l1=loss_l1, loss_ssim=loss_ssim, loss_fft=loss_fft)
+            else:
+                loss_dict = dict()
+                loss_dict[f'loss_l1_{suffix}'] = loss_l1
+                loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
+                loss_dict[f'loss_fft_{suffix}'] = loss_fft
+                return loss_dict
         else:
-            loss_dict = dict()
-            loss_dict[f'loss_l1_{suffix}'] = loss_l1
-            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
-            loss_dict[f'loss_fft_{suffix}'] = loss_fft
-            return loss_dict
+            loss_l1, loss_ssim = self.loss_single(preds, gts)
+
+            if suffix is None:
+                return dict(loss_l1=loss_l1, loss_ssim=loss_ssim)
+            else:
+                loss_dict = dict()
+                loss_dict[f'loss_l1_{suffix}'] = loss_l1
+                loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
+                return loss_dict

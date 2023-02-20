@@ -19,7 +19,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='ICCV2023_UIE',
-                              name='watrv6-water_adap')
+                              name='watrv6-water_adap2')
              )
     ])
 

@@ -1020,30 +1020,30 @@ class WaTrV3(BaseModule):
                                                 modulator=modulator, cross_modulator=cross_modulator)
         
         self.upsample_3 = upsample(embed_dim * 4, embed_dim)
-        # self.decoderlayer_3 = BasicUformerLayer(dim=embed_dim * 2,
-        #                                         output_dim=embed_dim * 2,
-        #                                         input_resolution=(img_size,
-        #                                                           img_size),
-        #                                         depth=depths[8],
-        #                                         num_heads=num_heads[8],
-        #                                         win_size=win_size,
-        #                                         mlp_ratio=self.mlp_ratio,
-        #                                         qkv_bias=qkv_bias, qk_scale=qk_scale,
-        #                                         drop=drop_rate, attn_drop=attn_drop_rate,
-        #                                         drop_path=dec_dpr[sum(depths[5:8]):sum(depths[5:9])],
-        #                                         norm_layer=norm_layer,
-        #                                         use_checkpoint=use_checkpoint,
-        #                                         token_projection=token_projection, token_mlp=token_mlp,
-        #                                         shift_flag=shift_flag,
-        #                                         modulator=modulator, cross_modulator=cross_modulator)
-        self.decoderlayer_3 = ConvLayer(in_ch=embed_dim * 2,
-                                        out_ch=embed_dim * 2,
-                                        kernel_size=3,
-                                        stride=1,
-                                        padding=1,
-                                        reflect_padding=True,
-                                        instance_norm=True
-                                        )
+        self.decoderlayer_3 = BasicUformerLayer(dim=embed_dim * 2,
+                                                output_dim=embed_dim * 2,
+                                                input_resolution=(img_size,
+                                                                  img_size),
+                                                depth=depths[8],
+                                                num_heads=num_heads[8],
+                                                win_size=win_size,
+                                                mlp_ratio=self.mlp_ratio,
+                                                qkv_bias=qkv_bias, qk_scale=qk_scale,
+                                                drop=drop_rate, attn_drop=attn_drop_rate,
+                                                drop_path=dec_dpr[sum(depths[5:8]):sum(depths[5:9])],
+                                                norm_layer=norm_layer,
+                                                use_checkpoint=use_checkpoint,
+                                                token_projection=token_projection, token_mlp=token_mlp,
+                                                shift_flag=shift_flag,
+                                                modulator=modulator, cross_modulator=cross_modulator)
+        # self.decoderlayer_3 = ConvLayer(in_ch=embed_dim * 2,
+        #                                 out_ch=embed_dim * 2,
+        #                                 kernel_size=3,
+        #                                 stride=1,
+        #                                 padding=1,
+        #                                 reflect_padding=True,
+        #                                 instance_norm=True
+        #                                 )
         
         self.apply(self._init_weights)
         
