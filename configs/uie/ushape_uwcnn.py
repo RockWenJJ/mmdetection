@@ -49,8 +49,8 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (224, 224)  # (620, 460) (w, h)
-crop_size = (128, 128)
+img_scale = (384, 384)  # (620, 460) (w, h)
+crop_size = (256, 256)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -97,7 +97,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=8,
-    workers_per_gpu=16,
+    workers_per_gpu=0,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'train_infos.json',
