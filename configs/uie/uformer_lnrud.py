@@ -11,14 +11,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=2000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023_LNRUD',
-        #                       name='uformer_lnrud')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='ICCV2023_LNRUD',
+                              name='uformer_lnrud')
+             )
     ])
 
 # overwrite schedule
@@ -96,7 +96,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=8,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,

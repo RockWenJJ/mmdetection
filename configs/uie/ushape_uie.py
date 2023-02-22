@@ -4,10 +4,7 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='WaTrV6',
-    connect=True,
-    modulator=True,
-    with_ft_loss=False,
+    type='UshapeTrans'
 )
 
 log_config = dict(
@@ -19,17 +16,17 @@ log_config = dict(
         #      vis_interval=2000,
         #      log_checkpoint=True,
         #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023_UIE',
-        #                       name='watrv6-no_ftloss')
+        #      init_kwargs=dict(project='ICCV2023',
+        #                       name='uformer_uie')
         #      )
     ])
 
 # overwrite schedule
 # optimizer
-optimizer = dict(_delete_=True, type='Adam', lr=0.0001, weight_decay=0.0001)
+# optimizer = dict(type='Adam', lr=0.02, weight_decay=0.0001)
 # optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=0.01, norm_type=2))
 optimizer_config = dict(grad_clip=None)
-# optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 # optimizer_config = dict(grad_clip=None)
 # default decay ratio: gamma:0.1, min_lr: None
 lr_config = dict(
@@ -37,7 +34,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[50, 70, 95])
+    step=[50, 80])
 runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
@@ -52,20 +49,20 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (224, 224)  # (620, 460) (w, h)
-crop_size = (128, 128)
+img_scale = (256, 256)  # (620, 460) (w, h)
+crop_size = (256, 256)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadSynthesisFromFile'),
     dict(type='LoadBackFromFile'),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    dict(type='RandomCrop',
-         crop_type='absolute',
-         crop_size=crop_size,
-         recompute_bbox=True,
-         allow_negative_crop=True),
-    dict(type='RandomNoise', ratio=0.5, noise_types=['gaussian', 'poisson']),
+    # dict(type='RandomCrop',
+    #      crop_type='absolute',
+    #      crop_size=crop_size,
+    #      recompute_bbox=True,
+    #      allow_negative_crop=True),
+    dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
@@ -77,11 +74,11 @@ val_pipeline = [
     dict(type='LoadSynthesisFromFile'),
     dict(type='LoadBackFromFile'),
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
-    dict(type='CenterCrop',
-         crop_type='absolute',
-         crop_size=crop_size,
-         recompute_bbox=True,
-         allow_negative_crop=True),
+    # dict(type='CenterCrop',
+    #      crop_type='absolute',
+    #      crop_size=crop_size,
+    #      recompute_bbox=True,
+    #      allow_negative_crop=True),
     dict(type='RandomFlip', flip_ratio=0.),
     dict(type='Normalize', **img_norm_cfg),
     # dict(type='Pad', size_divisor=32),
