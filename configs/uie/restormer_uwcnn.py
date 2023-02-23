@@ -53,7 +53,7 @@ runner = dict(type='EpochBasedRunner', max_epochs=100)
 # overwrite dataset config
 # dataset settings
 dataset_type = 'SynBackDataset'
-data_root = './data/synthesis/'
+data_root = './data/uwcnn/'
 real_dataset_type = 'UWDataset'
 real_root = './data/real/'
 # img_norm_cfg = dict(
