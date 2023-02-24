@@ -18,8 +18,8 @@ log_config = dict(
              vis_interval=2000,
              log_checkpoint=True,
              log_checkpoint_metadata=True,
-             init_kwargs=dict(project='ICCV2023_UWCNN_finetune',
-                              name='watrv6_uwcnn')
+             init_kwargs=dict(project='ICCV2023_LNRUD',
+                              name='watrv6_lnrud')
              )
     ])
 
@@ -36,13 +36,13 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=1000,
     warmup_ratio=0.001,
-    step=[50, 70, 95])
-runner = dict(type='EpochBasedRunner', max_epochs=120)
+    step=[20, 35, 48])
+runner = dict(type='EpochBasedRunner', max_epochs=50)
 
 # overwrite dataset config
 # dataset settings
 dataset_type = 'SynBackDataset'
-data_root = './data/uwcnn/'
+data_root = './data/lnrud/'
 real_dataset_type = 'UWDataset'
 real_root = './data/real/'
 # img_norm_cfg = dict(
@@ -51,8 +51,8 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (256, 256)  # (620, 460) (w, h)
-crop_size = (256, 256)
+img_scale = (224, 224)  # (620, 460) (w, h)
+crop_size = (128, 128)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -98,7 +98,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=2,
+    samples_per_gpu=8,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,
