@@ -723,7 +723,7 @@ class LeWinTransformerBlock(nn.Module):
         self.alpha = nn.Parameter(torch.ones(1)/2.)
         
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        self.norm2 = norm_layer(dim * 2)
+        self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         if token_mlp == 'gdff':
             self.mlp = GatedFeedForward(dim, mlp_hidden_dim)
