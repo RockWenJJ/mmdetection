@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
+from einops import rearrange
 from collections import OrderedDict
 from mmcv.runner import BaseModule
 from ..builder import DETECTORS, build_loss, build_layer
@@ -112,8 +113,12 @@ class WindowAttention(nn.Module):
             mask: (0/-inf) mask with shape of (num_windows, Wh*Ww, Wh*Ww) or None
         """
         B_, N, C = x.shape
-
-        temp = self.qkv_dwconv(self.qkv(x.permute(2,0,1))).permute(1,2,0)
+        
+        x = rearrange(x, 'b (h w) c-> b c h w', h=self.window_size[0], w=self.window_size[1])
+        
+        # temp = self.qkv_dwconv(self.qkv(x.permute(2,0,1))).permute(1,2,0)
+        temp = self.qkv_dwconv(self.qkv(x))
+        temp = rearrange(temp, 'b c h w -> b (h w) c')
         qkv = temp.reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
@@ -510,7 +515,7 @@ class PatchEmbed(nn.Module):
         return flops
 
 @DETECTORS.register_module()
-class URSCT_SR(nn.Module):
+class URSCT_SR(BaseModule):
     def __init__(self,
                  in_chns=3,
                  out_chns=3,
@@ -630,6 +635,9 @@ class URSCT_SR(nn.Module):
         # SR_upsample
         self.up_sr = UpSample(input_resolution=(self.img_size[0] // self.patch_size, self.img_size[1] // self.patch_size),
                            in_channels=self.embed_dim, scale_factor = 2 * self.scale)
+        # self.up_sr = UpSample(
+        #     input_resolution=(self.img_size[0] // self.patch_size, self.img_size[1] // self.patch_size),
+        #     in_channels=self.embed_dim, scale_factor=self.scale)
         self.output_SR = nn.Conv2d(in_channels=self.embed_dim, out_channels=self.out_chans, kernel_size=3, stride=1,
                                 padding=1, bias=False)
         self.apply(self._init_weights)
@@ -699,7 +707,7 @@ class URSCT_SR(nn.Module):
         x = self.forward_up_features(x, x_downsample) # dim=32
         y_SR = self.up_SR(x)
         out_SR = self.output_SR(y_SR)
-        return tuple(out_SR)
+        return tuple([out_SR])
 
     def forward(self, img, img_metas, return_loss=True, **kwargs):
     

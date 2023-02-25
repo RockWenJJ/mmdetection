@@ -7,7 +7,8 @@ model = dict(
     type='WaTrV6',
     connect=True,
     modulator=True,
-    
+    token_projection='conv',
+    with_ft_loss=False
 )
 
 log_config = dict(
@@ -52,8 +53,8 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (256, 256)  # (620, 460) (w, h)
-crop_size = (256, 256)
+img_scale = (224, 224)  # (620, 460) (w, h)
+crop_size = (128, 128)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -99,7 +100,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=2,
+    samples_per_gpu=8,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,

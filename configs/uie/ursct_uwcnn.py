@@ -4,10 +4,9 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='WaTrV6',
-    connect=True,
-    modulator=True,
-    
+    type='URSCT_SR',
+    hr_size=[256, 256],
+    scale=2
 )
 
 log_config = dict(
@@ -19,8 +18,8 @@ log_config = dict(
         #      vis_interval=2000,
         #      log_checkpoint=True,
         #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023_UWCNN_finetune',
-        #                       name='watrv6_uwcnn')
+        #      init_kwargs=dict(project='ICCV2023_UWCNN',
+        #                       name='ursct_uwcnn')
         #      )
     ])
 
@@ -38,7 +37,7 @@ lr_config = dict(
     warmup_iters=1000,
     warmup_ratio=0.001,
     step=[50, 70, 95])
-runner = dict(type='EpochBasedRunner', max_epochs=120)
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
@@ -65,7 +64,7 @@ train_pipeline = [
          crop_size=crop_size,
          recompute_bbox=True,
          allow_negative_crop=True),
-    # dict(type='RandomNoise', ratio=0.5, noise_types=['gaussian', 'poisson']),
+    # dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
@@ -100,7 +99,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=2,
-    workers_per_gpu=16,
+    workers_per_gpu=0,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'train_infos.json',

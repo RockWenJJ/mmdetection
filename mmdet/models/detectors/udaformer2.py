@@ -409,7 +409,6 @@ class Downsample(nn.Module):
         if w % 2 != 0:
             x = F.pad(x, [1, 0, 0, 0])
         return self.body(x)
-    
 class Upsample(nn.Module):
     def __init__(self, n_feat):
         super(Upsample, self).__init__()

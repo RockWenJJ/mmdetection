@@ -60,6 +60,8 @@ from .watr_v5 import WaTrV5
 from .watr_v6 import WaTrV6
 from .ushape_trans import UshapeTrans
 from .udaformer import UDAformer
+from .ursct import URSCT_SR
+from .waterformer_v1 import WaterFormerV1
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -72,5 +74,6 @@ __all__ = [
     'TwoStagePanopticSegmentor', 'PanopticFPN', 'QueryInst', 'LAD', 'TOOD',
     'MaskFormer', 'DDOD', 'Mask2Former', 'UNet', 'FasterUIE', 'MaskedAutoencoderViT',
     'UNet2', 'Restormer', 'Restormer2', 'Restormer3', 'Uformer', 'WaTrV1', 'WaTrV2',
-    'WaTrV3', 'WaTrV4', 'WaTrV5', 'WaTrV6', 'UshapeTrans', 'UDAformer'
+    'WaTrV3', 'WaTrV4', 'WaTrV5', 'WaTrV6', 'UshapeTrans', 'UDAformer', 'URSCT_SR',
+    'WaterFormerV1'
 ]

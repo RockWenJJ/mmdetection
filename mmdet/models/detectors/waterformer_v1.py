@@ -82,11 +82,9 @@ class SepConv2d(torch.nn.Module):
         self.stride = stride
     
     def forward(self, x):
-        # h, w = hw_shape
-        # x = rearrange(x, ' b (h w) (c) -> b c h w ', h=h, w=w)
-        
-        x = self.pointwise(x)
         x = self.depthwise(x)
+        x = self.act_layer(x)
+        x = self.pointwise(x)
         return x
     
     def flops(self, HW):
@@ -128,6 +126,9 @@ class ConvProjection(nn.Module):
         q = rearrange(q, 'b (h d) l w -> b h (l w) d', h=h)
         k = rearrange(k, 'b (h d) l w -> b h (l w) d', h=h)
         v = rearrange(v, 'b (h d) l w -> b h (l w) d', h=h)
+
+        q = torch.nn.functional.normalize(q, dim=-1)
+        k = torch.nn.functional.normalize(k, dim=-1)
         
         # attn_kv = rearrange(attn_kv, 'b (l w) c -> b c l w', l=l, w=w)
         # q = self.to_q(x)
@@ -186,6 +187,7 @@ class ChannelWiseSelfAttention(nn.Module):
         
         out = self.project_out(out)
         return out
+
 
 class LinearProjection(nn.Module):
     def __init__(self, dim, heads=8, dim_head=64, dropout=0., bias=True):
@@ -429,7 +431,7 @@ class GatedFeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, bias=True):
         super(GatedFeedForward, self).__init__()
         
-        self.project_in = nn.Conv2d(dim * 2, hidden_dim, kernel_size=1, bias=bias)
+        self.project_in = nn.Conv2d(dim, hidden_dim, kernel_size=1, bias=bias)
         
         self.dwconv = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, stride=1, padding=1,
                                 groups=hidden_dim, bias=bias)
@@ -479,80 +481,126 @@ def window_reverse(windows, win_size, H, W, dilation_rate=1):
 #########################################
 # Downsample Block
 class Downsample(nn.Module):
-    def __init__(self, in_channel, out_channel):
+    def __init__(self, n_feat, feat_out):
         super(Downsample, self).__init__()
-        self.down1 = nn.Sequential(
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(in_channel, out_channel // 2, kernel_size=4, stride=2, padding=0),
-            nn.InstanceNorm2d(out_channel // 2),
-        )
-        self.down2 = nn.Sequential(
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(in_channel, out_channel // 4, kernel_size=3, stride=1, padding=0),
-            nn.PixelUnshuffle(2),
-            nn.InstanceNorm2d(out_channel),
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
-            nn.InstanceNorm2d(out_channel // 2)
-        )
-        self.in_channel = in_channel
-        self.out_channel = out_channel
-    
+
+        self.body = nn.Sequential(nn.Conv2d(n_feat, n_feat // 2, kernel_size=3, stride=1, padding=1, bias=False),
+                                  nn.PixelUnshuffle(2),
+                                  nn.Conv2d(n_feat * 2, feat_out, kernel_size=1, stride=1, padding=0))
+
     def forward(self, x, hw_shape):
         B, L, C = x.shape
         H, W = hw_shape
         assert L == H * W
         x = x.transpose(1, 2).contiguous().view(B, C, H, W)
-        x1 = self.down1(x)
-        x2 = self.down2(x)
-        x = torch.cat([x1, x2], dim=1)
+        x = self.body(x)
+        
         hw_shape = x.shape[-2:]
-        out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
+        out = rearrange(x, 'b c h w -> b (h w) c')
+        # out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
+        # _, _, h, w = x.shape
+        # if h % 2 != 0:
+        #     x = F.pad(x, [0, 0, 1, 0])
+        # if w % 2 != 0:
+        #     x = F.pad(x, [1, 0, 0, 0])
         return out, hw_shape
-    
-    def flops(self, H, W):
-        flops = 0
-        # conv
-        flops += H / 2 * W / 2 * self.in_channel * self.out_channel * 4 * 4
-        print("Downsample:{%.2f}" % (flops / 1e9))
-        return flops
 
-
-# Upsample Module
+# Upsample Block
 class Upsample(nn.Module):
-    def __init__(self, in_channel, out_channel):
+    def __init__(self, n_feat, feat_out):
         super(Upsample, self).__init__()
-        self.deconv1 = nn.Sequential(
-            nn.ConvTranspose2d(in_channel, out_channel, kernel_size=2, stride=2),
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
-            nn.InstanceNorm2d(out_channel // 2)
-        )
-        self.deconv2 = nn.Sequential(
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(in_channel, out_channel * 2, kernel_size=3, stride=1, padding=0),
-            nn.PixelShuffle(2)
-        )
-        self.in_channel = in_channel
-        self.out_channel = out_channel
-    
+
+        self.body = nn.Sequential(nn.Conv2d(n_feat, n_feat * 2, kernel_size=3, stride=1, padding=1, bias=False),
+                                  nn.PixelShuffle(2),
+                                  nn.Conv2d(n_feat // 2, feat_out, kernel_size=1, stride=1, padding=0))
+
     def forward(self, x, hw_shape):
         B, L, C = x.shape
         H, W = hw_shape
         x = x.transpose(1, 2).contiguous().view(B, C, H, W)
-        x1 = self.deconv1(x)
-        x2 = self.deconv2(x)
-        x = torch.cat([x1, x2], dim=1)
+        x = self.body(x)
+
         hw_shape = x.shape[-2:]
-        out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
+        out = rearrange(x, 'b c h w -> b (h w) c')
+        # out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
+        
         return out, hw_shape
-    
-    def flops(self, H, W):
-        flops = 0
-        # conv
-        flops += H * 2 * W * 2 * self.in_channel * self.out_channel * 2 * 2
-        print("Upsample:{%.2f}" % (flops / 1e9))
-        return flops
+
+# # class Downsample(nn.Module):
+# #     def __init__(self, in_channel, out_channel):
+# #         super(Downsample, self).__init__()
+# #         self.down1 = nn.Sequential(
+# #             nn.ReflectionPad2d(1),
+# #             nn.Conv2d(in_channel, out_channel // 2, kernel_size=4, stride=2, padding=0),
+# #             nn.InstanceNorm2d(out_channel // 2),
+# #         )
+# #         self.down2 = nn.Sequential(
+# #             nn.ReflectionPad2d(1),
+# #             nn.Conv2d(in_channel, out_channel // 4, kernel_size=3, stride=1, padding=0),
+# #             nn.PixelUnshuffle(2),
+# #             nn.InstanceNorm2d(out_channel),
+# #             nn.ReflectionPad2d(1),
+# #             nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
+# #             nn.InstanceNorm2d(out_channel // 2)
+# #         )
+# #         self.in_channel = in_channel
+# #         self.out_channel = out_channel
+# #
+# #     def forward(self, x, hw_shape):
+# #         B, L, C = x.shape
+# #         H, W = hw_shape
+# #         assert L == H * W
+# #         x = x.transpose(1, 2).contiguous().view(B, C, H, W)
+# #         x1 = self.down1(x)
+# #         x2 = self.down2(x)
+# #         x = torch.cat([x1, x2], dim=1)
+# #         hw_shape = x.shape[-2:]
+# #         out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
+# #         return out, hw_shape
+# #
+# #     def flops(self, H, W):
+# #         flops = 0
+# #         # conv
+# #         flops += H / 2 * W / 2 * self.in_channel * self.out_channel * 4 * 4
+# #         print("Downsample:{%.2f}" % (flops / 1e9))
+# #         return flops
+#
+#
+# # Upsample Module
+# class Upsample(nn.Module):
+#     def __init__(self, in_channel, out_channel):
+#         super(Upsample, self).__init__()
+#         self.deconv1 = nn.Sequential(
+#             nn.ConvTranspose2d(in_channel, out_channel, kernel_size=2, stride=2),
+#             nn.ReflectionPad2d(1),
+#             nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
+#             nn.InstanceNorm2d(out_channel // 2)
+#         )
+#         self.deconv2 = nn.Sequential(
+#             nn.ReflectionPad2d(1),
+#             nn.Conv2d(in_channel, out_channel * 2, kernel_size=3, stride=1, padding=0),
+#             nn.PixelShuffle(2)
+#         )
+#         self.in_channel = in_channel
+#         self.out_channel = out_channel
+#
+#     def forward(self, x, hw_shape):
+#         B, L, C = x.shape
+#         H, W = hw_shape
+#         x = x.transpose(1, 2).contiguous().view(B, C, H, W)
+#         x1 = self.deconv1(x)
+#         x2 = self.deconv2(x)
+#         x = torch.cat([x1, x2], dim=1)
+#         hw_shape = x.shape[-2:]
+#         out = x.flatten(2).transpose(1, 2).contiguous()  # B H*W C
+#         return out, hw_shape
+#
+#     def flops(self, H, W):
+#         flops = 0
+#         # conv
+#         flops += H * 2 * W * 2 * self.in_channel * self.out_channel * 2 * 2
+#         print("Upsample:{%.2f}" % (flops / 1e9))
+#         return flops
 
 
 # Input Projection
@@ -672,9 +720,10 @@ class LeWinTransformerBlock(nn.Module):
         #     dim, win_size=to_2tuple(self.win_size), num_heads=num_heads,
         #     qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
         #     token_projection=token_projection)
+        self.alpha = nn.Parameter(torch.ones(1)/2.)
         
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        self.norm2 = norm_layer(dim*2)
+        self.norm2 = norm_layer(dim * 2)
         mlp_hidden_dim = int(dim * mlp_ratio)
         if token_mlp == 'gdff':
             self.mlp = GatedFeedForward(dim, mlp_hidden_dim)
@@ -758,7 +807,7 @@ class LeWinTransformerBlock(nn.Module):
             x = x[:, :H, :W, :].contiguous()
         
         x = x.view(B, H * W, C)
-
+        
         # cross window attention
         x1 = self.norm1(shortcut)
         x1 = rearrange(x1, 'b (h w) c -> b c h w', h=H, w=W)
@@ -778,21 +827,23 @@ class LeWinTransformerBlock(nn.Module):
             # wmsa_in = self.with_pos_embed(x_windows, self.modulator.weight)
         else:
             x1 = x1
-
+        
         x1 = self.c_attn(x1)
         x1 = rearrange(x1, 'b c h w -> b (h w) c')
-
+        
         # x = x + x1
         
-        
-        # FFN
+        # # FFN
+        # # x = shortcut + self.drop_path(x)
+        # # x = x + self.drop_path(self.mlp(self.norm2(x), hw_shape))
+        # # concat type
+        # x1 = shortcut + self.drop_path(x1)
         # x = shortcut + self.drop_path(x)
-        # x = x + self.drop_path(self.mlp(self.norm2(x), hw_shape))
-        # concat type
-        x1 = shortcut + self.drop_path(x1)
+        # x = torch.cat([x, x1], dim=-1)
+        x = self.alpha * x + (1-self.alpha) * x1
         x = shortcut + self.drop_path(x)
-        x = torch.cat([x, x1], dim=-1)
-        x = shortcut + self.drop_path(self.mlp(self.norm2(x), hw_shape))
+        
+        x = x + self.drop_path(self.mlp(self.norm2(x), hw_shape))
         del attn_mask
         return x, hw_shape
     
@@ -875,7 +926,7 @@ class BasicUformerLayer(nn.Module):
 
 
 @DETECTORS.register_module()
-class WaTrV6(BaseModule):
+class WaterFormerV1(BaseModule):
     def __init__(self, img_size=128, in_chans=3, dd_in=3,
                  embed_dim=32, depths=[2, 2, 2, 2, 2, 2, 2, 2, 2], num_heads=[1, 2, 4, 8, 16, 16, 8, 4, 2],
                  win_size=8, mlp_ratio=4., qkv_bias=True, qk_scale=None,
@@ -1094,14 +1145,6 @@ class WaTrV6(BaseModule):
                                                 token_projection=token_projection, token_mlp=token_mlp,
                                                 shift_flag=shift_flag,
                                                 modulator=modulator, cross_modulator=cross_modulator)
-        # self.decoderlayer_3 = ConvLayer(in_ch=embed_dim * 2,
-        #                                 out_ch=embed_dim * 2,
-        #                                 kernel_size=3,
-        #                                 stride=1,
-        #                                 padding=1,
-        #                                 reflect_padding=True,
-        #                                 instance_norm=True
-        #                                 )
         
         self.apply(self._init_weights)
         
@@ -1295,12 +1338,11 @@ class WaTrV6(BaseModule):
             return loss_l1, loss_ssim, loss_fft
         else:
             return loss_l1, loss_ssim
-        
     
     def loss(self, preds, gts, img_metas, suffix=None):
         if self.fft_loss is not None:
             loss_l1, loss_ssim, loss_fft = self.loss_single(preds, gts)
-
+            
             if suffix is None:
                 return dict(loss_l1=loss_l1, loss_ssim=loss_ssim, loss_fft=loss_fft)
             else:
@@ -1311,7 +1353,7 @@ class WaTrV6(BaseModule):
                 return loss_dict
         else:
             loss_l1, loss_ssim = self.loss_single(preds, gts)
-
+            
             if suffix is None:
                 return dict(loss_l1=loss_l1, loss_ssim=loss_ssim)
             else:
