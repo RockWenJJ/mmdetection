@@ -11,14 +11,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=2000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023_UWCNN_finetune',
-        #                       name='watrv6_uwcnn')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='ICCV2023_UWCNN',
+                              name='waterformer_uwcnn')
+             )
     ])
 
 # overwrite schedule
@@ -35,7 +35,7 @@ lr_config = dict(
     warmup_iters=1000,
     warmup_ratio=0.001,
     step=[50, 70, 95])
-runner = dict(type='EpochBasedRunner', max_epochs=120)
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
@@ -96,8 +96,8 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=0,
+    samples_per_gpu=8,
+    workers_per_gpu=16,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'train_infos.json',
@@ -115,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=1)
-evaluation = dict(type='UieEvalHook', interval=1)
+checkpoint_config = dict(interval=2)
+evaluation = dict(type='UieEvalHook', interval=2)
