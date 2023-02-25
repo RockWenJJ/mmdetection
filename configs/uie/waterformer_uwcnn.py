@@ -4,11 +4,7 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='WaterFormerV1',
-    connect=True,
-    modulator=True,
-    token_projection='conv',
-    with_ft_loss=False
+    type='WaterFormerV2',
 )
 
 log_config = dict(
@@ -100,8 +96,8 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=8,
-    workers_per_gpu=16,
+    samples_per_gpu=4,
+    workers_per_gpu=0,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'train_infos.json',
@@ -119,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=2)
-evaluation = dict(type='UieEvalHook', interval=2)
+checkpoint_config = dict(interval=1)
+evaluation = dict(type='UieEvalHook', interval=1)

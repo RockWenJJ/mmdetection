@@ -32,28 +32,32 @@ class ConvLayer(BaseModule):
                  instance_norm):
         super(ConvLayer, self).__init__()
         self.layers = []
-        conv_type = 'CIR' if instance_norm else 'CBR'
         
-        layer = []
-        layer_cfg = {'type': conv_type,
-                     'in_ch': in_ch,
-                     'out_ch': out_ch,
-                     'kernel_size': kernel_size,
-                     'stride': stride,
-                     'padding': padding,
-                     'reflect_padding': reflect_padding
-                     }
-        layer.append(build_layer(layer_cfg))
-        layer_cfg['in_ch'] = out_ch
-        layer.append(build_layer(layer_cfg))
-        self.layer = nn.Sequential(*layer)
+        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size=1, bias=True)
+        self.dwconv = nn.Conv2d(out_ch, out_ch, kernel_size=3, stride=1, padding=1, bias=True, groups=out_ch)
+        
+        # conv_type = 'CIR' if instance_norm else 'CBR'
+        #
+        # layer = []
+        # layer_cfg = {'type': conv_type,
+        #              'in_ch': in_ch,
+        #              'out_ch': out_ch,
+        #              'kernel_size': kernel_size,
+        #              'stride': stride,
+        #              'padding': padding,
+        #              'reflect_padding': reflect_padding
+        #              }
+        # layer.append(build_layer(layer_cfg))
+        # layer_cfg['in_ch'] = out_ch
+        # layer.append(build_layer(layer_cfg))
+        # self.layer = nn.Sequential(*layer)
     
     def forward(self, x, hw_shape):
         B, L, C = x.shape
         H, W = hw_shape
         assert L == H * W
         x = rearrange(x, 'b (h w) c -> b c h w', h=H, w=W)
-        x = self.layer(x)
+        x = self.dwconv(self.conv(x))
         x = rearrange(x, 'b c h w -> b (h w) c')
         return x, hw_shape
 
@@ -159,7 +163,7 @@ class ChannelWiseSelfAttention(nn.Module):
         self.qkv_dwconv = nn.Conv2d(dim * 3, dim * 3, kernel_size=3, stride=1, padding=1, groups=dim * 3, bias=bias)
         self.project_out = nn.Conv2d(dim, dim, kernel_size=1, bias=bias)
         
-        self.qk_pool = nn.AdaptiveAvgPool2d((7, 7))
+        # self.qk_pool = nn.AdaptiveAvgPool2d((7, 7))
     
     def forward(self, x):
         b, c, h, w = x.shape
@@ -167,8 +171,8 @@ class ChannelWiseSelfAttention(nn.Module):
         qkv = self.qkv_dwconv(self.qkv(x))
         q, k, v = qkv.chunk(3, dim=1)
         
-        q = self.qk_pool(q)
-        k = self.qk_pool(k)
+        # q = self.qk_pool(q)
+        # k = self.qk_pool(k)
         
         q = rearrange(q, 'b (head c) h w -> b head c (h w)', head=self.num_heads)
         k = rearrange(k, 'b (head c) h w -> b head c (h w)', head=self.num_heads)
@@ -435,15 +439,23 @@ class GatedFeedForward(nn.Module):
         
         self.dwconv = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, stride=1, padding=1,
                                 groups=hidden_dim, bias=bias)
-        
+
+        self.project_in = nn.Conv2d(dim, hidden_dim*2, kernel_size=1, bias=bias)
+
+        self.dwconv = nn.Conv2d(hidden_dim*2, hidden_dim*2, kernel_size=3, stride=1, padding=1,
+                                groups=hidden_dim*2, bias=bias)
+
         self.project_out = nn.Conv2d(hidden_dim, dim, kernel_size=1, bias=bias)
     
     def forward(self, x, hw_shape):
         h, w = hw_shape
         x = rearrange(x, ' b (h w) (c) -> b c h w ', h=h, w=w)
         x = self.project_in(x)
-        x = self.dwconv(x)
+        x1, x2 = self.dwconv(x).chunk(2, dim=1)
+        x = F.relu(x1) * x2
         x = self.project_out(x)
+        # x = self.dwconv(x)
+        # x = self.project_out(x)
         x = rearrange(x, ' b c h w -> b (h w) c', h=h, w=w)
         return x
 
@@ -712,6 +724,8 @@ class LeWinTransformerBlock(nn.Module):
             dim, win_size=to_2tuple(self.win_size), num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
             token_projection=token_projection)
+        self.proj_out1 = nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=1, bias=True)
+        self.proj_out2 = nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=1, bias=True)
         
         # cross window attention
         # self.avg = nn.AdaptiveAvgPool2d(self.win_size)
@@ -806,6 +820,7 @@ class LeWinTransformerBlock(nn.Module):
         if pad_r > 0 or pad_b:
             x = x[:, :H, :W, :].contiguous()
         
+        x = self.proj_out1(x)
         x = x.view(B, H * W, C)
         
         # cross window attention
@@ -829,6 +844,7 @@ class LeWinTransformerBlock(nn.Module):
             x1 = x1
         
         x1 = self.c_attn(x1)
+        x1 = self.proj_out(x1)
         x1 = rearrange(x1, 'b c h w -> b (h w) c')
         
         # x = x + x1
@@ -977,8 +993,8 @@ class WaterFormerV1(BaseModule):
                                                 use_checkpoint=use_checkpoint,
                                                 token_projection=token_projection, token_mlp=token_mlp,
                                                 shift_flag=shift_flag)
-        self.skip0 = ConvLayer(in_ch=embed_dim,
-                               out_ch=embed_dim,
+        self.skip0 = ConvLayer(in_ch=embed_dim ,
+                               out_ch=embed_dim ,
                                kernel_size=3,
                                stride=1,
                                padding=1,
@@ -1240,18 +1256,22 @@ class WaterFormerV1(BaseModule):
         # Decoder
         up0, hw_shape = self.upsample_0(conv4, hw_shape)
         deconv0 = torch.cat([up0, self.skip3(conv3, hw_shape)[0]], -1)
+        # deconv0 = self.skip3(torch.cat([up0, conv3], -1), hw_shape)[0]
         deconv0, hw_shape = self.decoderlayer_0(deconv0, hw_shape, mask=mask)
         
         up1, hw_shape = self.upsample_1(deconv0, hw_shape)
         deconv1 = torch.cat([up1, self.skip2(conv2, hw_shape)[0]], -1)
+        # deconv1 = self.skip2(torch.cat([up1, conv2], -1))[0]
         deconv1, hw_shape = self.decoderlayer_1(deconv1, hw_shape, mask=mask)
         
         up2, hw_shape = self.upsample_2(deconv1, hw_shape)
         deconv2 = torch.cat([up2, self.skip1(conv1, hw_shape)[0]], -1)
+        # deconv2 = self.skip1(torch.cat([up2, conv2], -1))[0] #torch.cat([up2, self.skip1(conv1, hw_shape)[0]], -1)
         deconv2, hw_shape = self.decoderlayer_2(deconv2, hw_shape)
         
         up3, hw_shape = self.upsample_3(deconv2, hw_shape)
         deconv3 = torch.cat([up3, self.skip0(conv0, hw_shape)[0]], -1)
+        # deconv2 = self.skip0(torch.cat([up3, conv0], -1))[0]
         deconv3, hw_shape = self.decoderlayer_3(deconv3, hw_shape)
         
         # Output Projection

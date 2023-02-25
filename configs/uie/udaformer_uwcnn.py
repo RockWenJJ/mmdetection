@@ -11,14 +11,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        dict(type='UIEWandbLoggerHook',
-             interval=50,
-             vis_interval=2000,
-             log_checkpoint=True,
-             log_checkpoint_metadata=True,
-             init_kwargs=dict(project='ICCV2023_UWCNN',
-                              name='udaformer_uwcnn')
-             )
+        # dict(type='UIEWandbLoggerHook',
+        #      interval=50,
+        #      vis_interval=2000,
+        #      log_checkpoint=True,
+        #      log_checkpoint_metadata=True,
+        #      init_kwargs=dict(project='ICCV2023_UWCNN',
+        #                       name='udaformer_uwcnn')
+        #      )
     ])
 
 # overwrite schedule
@@ -115,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=2)
-evaluation = dict(type='UieEvalHook', interval=2)
+checkpoint_config = dict(interval=1)
+evaluation = dict(type='UieEvalHook', interval=1)
