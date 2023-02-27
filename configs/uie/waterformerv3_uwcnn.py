@@ -4,10 +4,7 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='WaTrV6',
-    connect=True,
-    modulator=True,
-    
+    type='WaterFormerV3',
 )
 
 log_config = dict(
@@ -19,8 +16,8 @@ log_config = dict(
         #      vis_interval=2000,
         #      log_checkpoint=True,
         #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023_UWCNN_finetune',
-        #                       name='watrv6_uwcnn')
+        #      init_kwargs=dict(project='ICCV2023_UWCNN',
+        #                       name='waterformer_uwcnn')
         #      )
     ])
 
@@ -38,7 +35,7 @@ lr_config = dict(
     warmup_iters=1000,
     warmup_ratio=0.001,
     step=[50, 70, 95])
-runner = dict(type='EpochBasedRunner', max_epochs=120)
+runner = dict(type='EpochBasedRunner', max_epochs=100)
 
 # overwrite dataset config
 # dataset settings
@@ -52,8 +49,8 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (256, 256)  # (620, 460) (w, h)
-crop_size = (256, 256)
+img_scale = (224, 224)  # (620, 460) (w, h)
+crop_size = (128, 128)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -99,7 +96,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=2,
+    samples_per_gpu=4,
     workers_per_gpu=0,
     train=dict(
         type=dataset_type,
@@ -118,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=2)
-evaluation = dict(type='UieEvalHook', interval=2)
+checkpoint_config = dict(interval=1)
+evaluation = dict(type='UieEvalHook', interval=1)
