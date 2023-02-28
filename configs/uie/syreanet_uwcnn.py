@@ -4,9 +4,7 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='URSCT_SR',
-    hr_size=[256, 256],
-    scale=2
+    type='SyreaNet'
 )
 
 log_config = dict(
@@ -19,7 +17,7 @@ log_config = dict(
              log_checkpoint=True,
              log_checkpoint_metadata=True,
              init_kwargs=dict(project='ICCV2023_UWCNN',
-                              name='ursct_uwcnn')
+                              name='syreanet_uwcnn')
              )
     ])
 
@@ -64,7 +62,7 @@ train_pipeline = [
          crop_size=crop_size,
          recompute_bbox=True,
          allow_negative_crop=True),
-    # dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    # dict(type='RandomNoise', ratio=0.5, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
