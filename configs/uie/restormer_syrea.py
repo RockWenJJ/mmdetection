@@ -39,7 +39,7 @@ log_config = dict(
 optimizer = dict(_delete_=True, type='Adam', lr=0.0001, weight_decay=0.0001)
 # optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=0.01, norm_type=2))
 # optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
-# optimizer_config = dict(grad_clip=None)
+optimizer_config = dict(grad_clip=None)
 # default decay ratio: gamma:0.1, min_lr: None
 lr_config = dict(
     policy='step',
