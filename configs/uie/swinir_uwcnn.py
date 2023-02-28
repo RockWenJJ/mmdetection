@@ -96,7 +96,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=6,
+    samples_per_gpu=8,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,
@@ -115,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=1)
-evaluation = dict(type='UieEvalHook', interval=1)
+checkpoint_config = dict(interval=2)
+evaluation = dict(type='UieEvalHook', interval=2)
