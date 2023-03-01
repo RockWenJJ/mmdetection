@@ -282,7 +282,7 @@ class TransformerBlock(nn.Module):
         
         # feed forward
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv = nn.Conv2d(dim, dim, kernel_size=1, padding=0, bias=True)
+        # self.conv = nn.Conv2d(dim, dim, kernel_size=1, padding=0, bias=True)
         self.norm2 = LayerNorm(dim)
         self.ffn = FeedForward(dim, bias)
         
@@ -417,10 +417,11 @@ class WaterFormerV4(BaseModule):
         
         self.up4_3 = Upsample(int(dim * 2 ** 3), int(dim * 2**2))  ## From Level 4 to Level 3
         self.skip_connect3 = nn.Sequential(
-            nn.ReflectionPad2d(1),
             nn.Conv2d(int(dim * 2 ** 2), int(dim * 2 ** 2), kernel_size=1, bias=bias),
+            nn.ReflectionPad2d(1),
             nn.Conv2d(int(dim * 2 ** 2), int(dim * 2 ** 2), kernel_size=3, stride=1, padding=0,
-                                groups=int(dim * 2 ** 2), bias=bias))
+                                groups=int(dim * 2 ** 2), bias=bias),
+            nn.Conv2d(int(dim * 2 ** 2), int(dim * 2 ** 2), kernel_size=1, bias=bias))
         
         self.decoder_level3 = nn.Sequential(*[
             TransformerBlock(dim=int(dim * 2 ** 3), num_heads=heads[2], bias=bias, window_size=window_size,
@@ -429,10 +430,11 @@ class WaterFormerV4(BaseModule):
         self.up3_2 = Upsample(int(dim * 2 ** 3), int(dim * 2))  ## From Level 3 to Level 2
         # self.skip_connect2 = nn.Conv2d(int(dim * 2 ** 1), int(dim * 2 ** 1), kernel_size=1, bias=bias)
         self.skip_connect2 = nn.Sequential(
-            nn.ReflectionPad2d(1),
             nn.Conv2d(int(dim * 2 ** 1), int(dim * 2 ** 1), kernel_size=1, bias=bias),
+            nn.ReflectionPad2d(1),
             nn.Conv2d(int(dim * 2 ** 1), int(dim * 2 ** 1), kernel_size=3, stride=1, padding=0,
-                      groups=int(dim * 2 ** 1), bias=bias)
+                      groups=int(dim * 2 ** 1), bias=bias),
+            nn.Conv2d(int(dim * 2 ** 1), int(dim * 2 ** 1), kernel_size=1, bias=bias)
         )
         self.decoder_level2 = nn.Sequential(*[
             TransformerBlock(dim=int(dim * 2 ** 2), num_heads=heads[1], bias=bias, window_size=window_size,
@@ -441,10 +443,11 @@ class WaterFormerV4(BaseModule):
         self.up2_1 = Upsample(int(dim * 2 **2), int(dim))  ## From Level 2 to Level 1
         # self.skip_connect1 = nn.Conv2d(int(dim), int(dim), kernel_size=1, bias=bias)
         self.skip_connect1 = nn.Sequential(
-            nn.ReflectionPad2d(1),
             nn.Conv2d(int(dim), int(dim), kernel_size=1, bias=bias),
+            nn.ReflectionPad2d(1),
             nn.Conv2d(int(dim), int(dim), kernel_size=3, stride=1, padding=0,
-                      groups=int(dim), bias=bias)
+                      groups=int(dim), bias=bias),
+            nn.Conv2d(int(dim), int(dim), kernel_size=1, bias=bias)
         )
         
         self.decoder_level1 = nn.Sequential(*[
