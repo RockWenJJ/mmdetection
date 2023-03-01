@@ -22,12 +22,12 @@ def single_gpu_uie_test(model,
                         out_dir=None):
     model.eval()
     dataset = data_loader.dataset
-    prog_bar = mmcv.ProgressBar(len(dataset))
+    # prog_bar = mmcv.ProgressBar(len(dataset))
     
     for i, data in enumerate(data_loader):
         try:
             with torch.no_grad():
-                # print(data['img_metas'].data[0][0]['filename'])
+                print(data['img_metas'].data[0][0]['filename'])
                 result = model(**data, return_loss=False)
         except Exception as e:
             print(e)
@@ -50,8 +50,8 @@ def single_gpu_uie_test(model,
                 
                 mmcv.imwrite(img_show, osp.join(out_dir, img_meta['filename']), auto_mkdir=True)
         
-        for _ in range(batch_size):
-            prog_bar.update()
+        # for _ in range(batch_size):
+        #     prog_bar.update()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test a UIE model')

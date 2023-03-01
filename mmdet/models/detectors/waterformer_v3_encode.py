@@ -416,7 +416,7 @@ def cat(x1, x2):
 
 ##########################################################################
 @DETECTORS.register_module()
-class WaterFormerV3(BaseModule):
+class WaterFormerV3Encode(BaseModule):
     def __init__(self,
                  inp_channels=3,
                  out_channels=3,
@@ -490,12 +490,6 @@ class WaterFormerV3(BaseModule):
                              shift_size=shift_size) for i in range(num_refinement_blocks)])
         
         self.output = nn.Conv2d(int(dim*2), out_channels, kernel_size=1, bias=bias)
-        
-        self.apply(self._init_weights)
-        
-        self.l1_loss = build_loss(dict(type='L1Loss', loss_weight=1.0))
-        self.ssim_loss = build_loss(dict(type='SSIMLoss', loss_weight=1.0))
-        self.multi_scales = False
     
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -505,48 +499,6 @@ class WaterFormerV3(BaseModule):
         elif isinstance(m, nn.LayerNorm):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
-    
-    def forward(self, img, img_metas, return_loss=True, **kwargs):
-        
-        if torch.onnx.is_in_onnx_export():
-            assert len(img_metas) == 1
-            return self.onnx_export(img[0], img_metas[0]), {}
-        
-        if return_loss:
-            return self.forward_train(img, img_metas, **kwargs)
-        else:
-            return self.forward_test(img, img_metas, **kwargs)
-    
-    def forward_train(self, img, img_metas, **kwargs):
-        assert 'input' in kwargs
-        if self.multi_scales:
-            assert isinstance(img, (list, tuple)), "when multi_scale, "
-        input_img = kwargs['input'][-1] if self.multi_scales else kwargs['input']
-        
-        xs = self.forward_img(input_img)
-        
-        losses = dict()
-        images_dict = dict()
-        images_dict['input'] = input_img
-        
-        if self.multi_scales:
-            raise NotImplementedError
-        else:
-            images_dict['predict'] = xs[-1]
-            images_dict['target'] = img
-            losses.update(self.loss(xs[-1], img, img_metas))
-        
-        return losses, images_dict
-    
-    def forward_test(self, img, img_metas=None, **kwargs):
-        input_img = img
-        xs = self.forward_img(input_img)
-        return xs[-1]
-    
-    def forward_dummy(self, img):
-        '''Used for computing network flops and convert to onnx models'''
-        xs = self.forward_img(img)
-        return xs[-1]
     
     def forward_img(self, inp_img):
         
@@ -561,88 +513,4 @@ class WaterFormerV3(BaseModule):
         out_enc_level3 = self.encoder_level3(inp_enc_level3)
         inp_enc_level4 = self.down3_4(out_enc_level3)
         
-        latent = self.latent(inp_enc_level4)
-        
-        inp_dec_level3 = self.up4_3(latent)
-        inp_dec_level3 = cat(inp_dec_level3, self.skip_connect3(out_enc_level3))
-        # inp_dec_level3 = self.reduce_chan_level3(inp_dec_level3)
-        out_dec_level3 = self.decoder_level3(inp_dec_level3)
-        
-        inp_dec_level2 = self.up3_2(out_dec_level3)
-        inp_dec_level2 = cat(inp_dec_level2, self.skip_connect2(out_enc_level2))
-        # inp_dec_level2 = self.reduce_chan_level2(inp_dec_level2)
-        out_dec_level2 = self.decoder_level2(inp_dec_level2)
-        
-        inp_dec_level1 = self.up2_1(out_dec_level2)
-        inp_dec_level1 = cat(inp_dec_level1, self.skip_connect1(out_enc_level1))
-        # inp_dec_level1 = self.reduce_chan_level1(inp_dec_level1)
-        out_dec_level1 = self.decoder_level1(inp_dec_level1)
-        
-        # ref_out = self.refinement(out_dec_level1)
-        ref_out = out_dec_level1
-        
-        out = self.output(ref_out) + inp_img
-        
-        return tuple([out])
-    
-    def train_step(self, data, optimizer):
-        losses, images_dict = self(**data)
-        loss, log_vars = self._parse_losses(losses)
-        
-        outputs = dict(
-            loss=loss, log_vars=log_vars, num_samples=len(data['img_metas']), images=images_dict)
-        
-        return outputs
-    
-    def _parse_losses(self, losses):
-        """Parse the raw outputs (losses) of the network.
-
-        Args:
-            losses (dict): Raw output of the network, which usually contain
-                losses and other necessary information.
-
-        Returns:
-            tuple[Tensor, dict]: (loss, log_vars), loss is the loss tensor \
-                which may be a weighted sum of all losses, log_vars contains \
-                all the variables to be sent to the logger.
-        """
-        log_vars = OrderedDict()
-        for loss_name, loss_value in losses.items():
-            if isinstance(loss_value, torch.Tensor):
-                log_vars[loss_name] = loss_value.mean()
-            elif isinstance(loss_value, list):
-                log_vars[loss_name] = sum(_loss.mean() for _loss in loss_value)
-            else:
-                raise TypeError(
-                    f'{loss_name} is not a tensor or list of tensors')
-        
-        loss = sum(_value for _key, _value in log_vars.items()
-                   if 'loss' in _key)
-        
-        log_vars['loss'] = loss
-        for loss_name, loss_value in log_vars.items():
-            # reduce loss when distributed training
-            # if dist.is_available() and dist.is_initialized():
-            #     loss_value = loss_value.data.clone()
-            #     dist.all_reduce(loss_value.div_(dist.get_world_size()))
-            log_vars[loss_name] = loss_value.item()
-        
-        return loss, log_vars
-    
-    def loss_single(self, pred, gt):
-        loss_l1 = self.l1_loss(pred, gt)
-        loss_ssim = self.ssim_loss(pred, gt)
-        
-        return loss_l1, loss_ssim
-    
-    def loss(self, preds, gts, img_metas, suffix=None):
-        
-        loss_l1, loss_ssim = self.loss_single(preds, gts)
-        
-        if suffix is None:
-            return dict(loss_l1=loss_l1, loss_ssim=loss_ssim)
-        else:
-            loss_dict = dict()
-            loss_dict[f'loss_l1_{suffix}'] = loss_l1
-            loss_dict[f'loss_ssim_{suffix}'] = loss_ssim
-            return loss_dict
+        return inp_enc_level4

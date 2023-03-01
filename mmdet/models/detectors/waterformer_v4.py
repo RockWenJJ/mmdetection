@@ -266,6 +266,7 @@ class TransformerBlock(nn.Module):
         if adaptor:
             self.adap_pool = nn.AdaptiveAvgPool2d(window_size**2)
             self.adaptor = nn.Embedding(10, dim)
+            self.adaptor.weight.requires_grad_(False)
             self.adap_ffn = nn.Linear(window_size**4 * dim, 10)
         else:
             self.adap_pool = None
@@ -413,7 +414,7 @@ class WaterFormerV4(BaseModule):
         
         self.latent = nn.Sequential(*[
             TransformerBlock(dim=dim * 2 ** 3, num_heads=heads[3], bias=bias, window_size=window_size,
-                             shift_size=shift_size, adaptor=(i+1)//2) for i in range(num_blocks[3])])
+                             shift_size=shift_size, adaptor=(i+1)%2) for i in range(num_blocks[3])])
         
         self.up4_3 = Upsample(int(dim * 2 ** 3), int(dim * 2**2))  ## From Level 4 to Level 3
         self.skip_connect3 = nn.Sequential(

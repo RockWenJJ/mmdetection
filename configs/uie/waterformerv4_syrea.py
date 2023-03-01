@@ -11,14 +11,14 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='UIEWandbLoggerHook',
-        #      interval=50,
-        #      vis_interval=2000,
-        #      log_checkpoint=True,
-        #      log_checkpoint_metadata=True,
-        #      init_kwargs=dict(project='ICCV2023_UWCNN',
-        #                       name='waterformerv4_uwcnn')
-        #      )
+        dict(type='UIEWandbLoggerHook',
+             interval=50,
+             vis_interval=2000,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             init_kwargs=dict(project='ICCV2023_SYREA',
+                              name='waterformerv4_syrea')
+             )
     ])
 
 # overwrite schedule
@@ -40,7 +40,7 @@ runner = dict(type='EpochBasedRunner', max_epochs=100)
 # overwrite dataset config
 # dataset settings
 dataset_type = 'SynBackDataset'
-data_root = './data/uwcnn/'
+data_root = './data/synthesis/'
 real_dataset_type = 'UWDataset'
 real_root = './data/real/'
 # img_norm_cfg = dict(
@@ -96,7 +96,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=8,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,
@@ -115,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=1)
-evaluation = dict(type='UieEvalHook', interval=1)
+checkpoint_config = dict(interval=2)
+evaluation = dict(type='UieEvalHook', interval=2)
