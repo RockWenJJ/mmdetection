@@ -7,18 +7,18 @@ from glob import glob
 import os
 from sklearn import manifold
 import matplotlib.pyplot as plt
-from mmdet.models.detectors import WaterFormerV3Encode
+from mmdet.models.detectors import WaterFormerV4Encode, WaterFormerV3Encode
 from mmcv.runner import load_checkpoint
 from einops import rearrange
 import torch
 
 # model = VGG16(weights='imagenet', include_top=False)
-checkpoint = '/home/wenjj/Documents/01_Projects/mmdetection/work_dirs/waterformerv3_syrea/epoch_100.pth'
-gpu_id = 0
-model = WaterFormerV3Encode()
+checkpoint = '/home/wenjj/Documents/01_Projects/mmdetection/work_dirs/waterformerv4_uwcnn/epoch_1.pth'
+gpu_id = 1
+model = WaterFormerV4Encode()
 checkpoint = load_checkpoint(model, checkpoint, map_location='cuda:%d'%gpu_id)
-model = model.cuda()
-avg = torch.nn.AdaptiveAvgPool2d(1).cuda()
+model = model.cuda('cuda:%d'%gpu_id)
+avg = torch.nn.AdaptiveAvgPool2d(1).cuda('cuda:%d'%gpu_id)
 colors = ['red', 'orange', 'blue', 'green', 'yellow', 'cyan']
 labels = ["0", "1",  '2', '3', '4', '5']
 
@@ -46,10 +46,10 @@ for label in labels:
         img_data = torch.from_numpy(img_data).float().to('cuda:%d'%gpu_id)
         img_data = rearrange(img_data, 'b h w c -> b c h w')
         feature = model.forward_img(img_data)
-        feature = model.latent[0](feature)
-        embedding = model.latent[1].adaptor(torch.LongTensor([int(label)]).to('cuda:%d'%gpu_id))
-        # feature = feature + embedding[..., None, None]
-        feature = embedding + np.rand_like(embedding.shape)
+        # feature = model.latent[0](feature)
+        embedding = model.latent[0].adaptor(torch.LongTensor([int(label)]).to('cuda:%d'%gpu_id))
+        feature = embedding[..., None, None]
+        # feature = embedding + np.rand_like(embedding.shape)
         # feature = avg(feature)
         # feature = feature[0, 127, ...]
         features.append(np.reshape(feature.cpu().data.numpy(), (1, -1)))
@@ -79,7 +79,7 @@ for i, X_tsne in enumerate(X_tsnes):
     # if i == 3:
     #     X_tsne[X_tsne[:, 0] > 340] = None
 
-    ax0.scatter(X_tsne[:, 0], X_tsne[:, 1], s=100, marker='o', color=colors[i], edgecolor='none', label=labels[i], alpha=0.55)
+    ax0.scatter(X_tsne[:, 0], X_tsne[:, 1], s=100, marker='o', color=colors[i], edgecolor='none', label=labels[i], alpha=1.0)
     # print(np.mean(X_tsne, 0))
 
 plt.show()
