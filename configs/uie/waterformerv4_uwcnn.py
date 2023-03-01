@@ -4,21 +4,21 @@ _base_ = [
     '../_base_/default_runtime.py']
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
-    type='UshapeTrans'
+    type='WaterFormerV4',
 )
 
 log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        dict(type='UIEWandbLoggerHook',
-             interval=50,
-             vis_interval=2000,
-             log_checkpoint=True,
-             log_checkpoint_metadata=True,
-             init_kwargs=dict(project='ICCV2023_SYREA',
-                              name='ushape_syrea')
-             )
+        # dict(type='UIEWandbLoggerHook',
+        #      interval=50,
+        #      vis_interval=2000,
+        #      log_checkpoint=True,
+        #      log_checkpoint_metadata=True,
+        #      init_kwargs=dict(project='ICCV2023_UWCNN',
+        #                       name='waterformerv4_uwcnn')
+        #      )
     ])
 
 # overwrite schedule
@@ -40,7 +40,7 @@ runner = dict(type='EpochBasedRunner', max_epochs=100)
 # overwrite dataset config
 # dataset settings
 dataset_type = 'SynBackDataset'
-data_root = './data/synthesis/'
+data_root = './data/uwcnn/'
 real_dataset_type = 'UWDataset'
 real_root = './data/real/'
 # img_norm_cfg = dict(
@@ -62,7 +62,7 @@ train_pipeline = [
          crop_size=crop_size,
          recompute_bbox=True,
          allow_negative_crop=True),
-    # dict(type='RandomNoise', ratio=0.8, noise_types=['gaussian', 'poisson']),
+    # dict(type='RandomNoise', ratio=0.5, noise_types=['gaussian', 'poisson']),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='SyreaFormatBundle'),
@@ -96,7 +96,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=8,
+    samples_per_gpu=4,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,
@@ -115,5 +115,5 @@ data = dict(
         pipeline=test_pipeline)
 )
 
-checkpoint_config = dict(interval=2)
-evaluation = dict(type='UieEvalHook', interval=2)
+checkpoint_config = dict(interval=1)
+evaluation = dict(type='UieEvalHook', interval=1)

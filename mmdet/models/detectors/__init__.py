@@ -64,6 +64,7 @@ from .ursct import URSCT_SR
 from .waterformer_v1 import WaterFormerV1
 from .waterformer_v2 import WaterFormerV2
 from .waterformer_v3 import WaterFormerV3
+from .waterformer_v4 import WaterFormerV4
 from .syreanet import SyreaNet
 from .swinir import SwinIR
 
@@ -79,5 +80,5 @@ __all__ = [
     'MaskFormer', 'DDOD', 'Mask2Former', 'UNet', 'FasterUIE', 'MaskedAutoencoderViT',
     'UNet2', 'Restormer', 'Restormer2', 'Restormer3', 'Uformer', 'WaTrV1', 'WaTrV2',
     'WaTrV3', 'WaTrV4', 'WaTrV5', 'WaTrV6', 'UshapeTrans', 'UDAformer', 'URSCT_SR',
-    'WaterFormerV1', 'WaterFormerV2', 'WaterFormerV3', 'SyreaNet', 'SwinIR'
+    'WaterFormerV1', 'WaterFormerV2', 'WaterFormerV3', 'SyreaNet', 'SwinIR', 'WaterFormerV4'
 ]
