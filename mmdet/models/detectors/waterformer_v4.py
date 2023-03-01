@@ -282,7 +282,7 @@ class TransformerBlock(nn.Module):
         
         # feed forward
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        # self.conv = nn.Conv2d(dim, dim, kernel_size=1, padding=0, bias=True)
+        self.conv = nn.Conv2d(dim, dim, kernel_size=1, padding=0, bias=True)
         self.norm2 = LayerNorm(dim)
         self.ffn = FeedForward(dim, bias)
         
@@ -307,7 +307,7 @@ class TransformerBlock(nn.Module):
         y2 = self.local_attn(self.local_norm1(x))
         y2 = shortcut + y2
         
-        alpha = F.sigmoid(self.avg_pool(y1))
+        alpha = self.conv(self.avg_pool(y1))
         y = alpha * y1 + (1 - alpha) * y2
         
         y = y + self.ffn(self.norm2(y))
