@@ -299,7 +299,7 @@ class TransformerBlock(nn.Module):
             x_adap = x_adap.reshape(B, -1)
             water_type = torch.argmax(F.softmax(self.adap_ffn(x_adap)), dim=1)
             type_embed = self.adaptor(water_type)
-            print(int(water_type.cpu().data))
+            # print(int(water_type.cpu().data))
             x = x + type_embed[..., None, None]
         
         y1 = self.glob_attn(self.glob_norm1(x))
