@@ -35,7 +35,7 @@ lr_config = dict(
     warmup_iters=1000,
     warmup_ratio=0.001,
     step=[50, 70, 95])
-runner = dict(type='EpochBasedRunner', max_epochs=100)
+runner = dict(type='EpochBasedRunner', max_epochs=110)
 
 # overwrite dataset config
 # dataset settings
@@ -49,8 +49,8 @@ img_norm_cfg = dict(
     mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 # syn_cfg = dict(coef_path='./data/coeffs.json', rand=False, num=1)
 
-img_scale = (224, 224)  # (620, 460) (w, h)
-crop_size = (128, 128)
+img_scale = (256, 256)  # (620, 460) (w, h)
+crop_size = (256, 256)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -96,7 +96,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=8,
+    samples_per_gpu=4,
     workers_per_gpu=16,
     train=dict(
         type=dataset_type,
