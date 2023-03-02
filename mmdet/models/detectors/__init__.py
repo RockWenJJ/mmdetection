@@ -65,6 +65,7 @@ from .waterformer_v1 import WaterFormerV1
 from .waterformer_v2 import WaterFormerV2
 from .waterformer_v3 import WaterFormerV3
 from .waterformer_v3_no_glob import WaterFormerV3NoGlobal
+from .waterformer_v3_no_local import WaterFormerV3NoLocal
 from .waterformer_v3_encode import WaterFormerV3Encode
 from .waterformer_v4 import WaterFormerV4
 from .waterformer_v4_encode import WaterFormerV4Encode
@@ -86,5 +87,5 @@ __all__ = [
     'WaTrV3', 'WaTrV4', 'WaTrV5', 'WaTrV6', 'UshapeTrans', 'UDAformer', 'URSCT_SR',
     'WaterFormerV1', 'WaterFormerV2', 'WaterFormerV3', 'SyreaNet', 'SwinIR',
     'WaterFormerV4', 'UNetB', 'WaterFormerV3Encode', 'WaterFormerV4Encode',
-    'WaterFormerV3NoGlobal'
+    'WaterFormerV3NoGlobal', 'WaterFormerV3NoLocal'
 ]
