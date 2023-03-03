@@ -16,8 +16,8 @@ log_config = dict(
              vis_interval=2000,
              log_checkpoint=True,
              log_checkpoint_metadata=True,
-             init_kwargs=dict(project='ICCV2023_UWCNN',
-                              name='waterformerv5_uwcnn')
+             init_kwargs=dict(project='ICCV2023_SYREA',
+                              name='waterformerv5_syrea')
              )
     ])
 
