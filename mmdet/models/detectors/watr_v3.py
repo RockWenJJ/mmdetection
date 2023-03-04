@@ -433,37 +433,37 @@ def window_reverse(windows, win_size, H, W, dilation_rate=1):
 class Downsample(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(Downsample, self).__init__()
-        # self.down1 = nn.Sequential(
-        #     nn.ReflectionPad2d(1),
-        #     nn.Conv2d(in_channel, out_channel // 2, kernel_size=4, stride=2, padding=0),
-        #     nn.InstanceNorm2d(out_channel // 2),
-        # )
         self.down1 = nn.Sequential(
-            nn.AvgPool2d(2),
             nn.ReflectionPad2d(1),
-            nn.Conv2d(in_channel, in_channel, kernel_size=3, stride=1, padding=0, groups=in_channel),
-            nn.Conv2d(in_channel, out_channel//2, kernel_size=1),
-            nn.InstanceNorm2d(out_channel//2)
+            nn.Conv2d(in_channel, out_channel // 2, kernel_size=4, stride=2, padding=0),
+            nn.InstanceNorm2d(out_channel // 2),
         )
-        
-        # self.down2 = nn.Sequential(
+        # self.down1 = nn.Sequential(
+        #     nn.AvgPool2d(2),
         #     nn.ReflectionPad2d(1),
-        #     nn.Conv2d(in_channel, out_channel // 4, kernel_size=3, stride=1, padding=0),
-        #     nn.PixelUnshuffle(2),
-        #     nn.InstanceNorm2d(out_channel),
-        #     nn.ReflectionPad2d(1),
-        #     nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
-        #     nn.InstanceNorm2d(out_channel // 2)
+        #     nn.Conv2d(in_channel, in_channel, kernel_size=3, stride=1, padding=0, groups=in_channel),
+        #     nn.Conv2d(in_channel, out_channel//2, kernel_size=1),
+        #     nn.InstanceNorm2d(out_channel//2)
         # )
         
         self.down2 = nn.Sequential(
-            nn.PixelUnshuffle(2),
             nn.ReflectionPad2d(1),
-            nn.Conv2d(in_channel * 4, in_channel * 4, kernel_size=3, stride=1, padding=0,
-                      groups=in_channel*4),
-            nn.Conv2d(in_channel*4, out_channel //2, kernel_size=1),
-            nn.InstanceNorm2d(out_channel//2)
+            nn.Conv2d(in_channel, out_channel // 4, kernel_size=3, stride=1, padding=0),
+            nn.PixelUnshuffle(2),
+            nn.InstanceNorm2d(out_channel),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(out_channel, out_channel // 2, kernel_size=3, stride=1, padding=0),
+            nn.InstanceNorm2d(out_channel // 2)
         )
+        
+        # self.down2 = nn.Sequential(
+        #     nn.PixelUnshuffle(2),
+        #     nn.ReflectionPad2d(1),
+        #     nn.Conv2d(in_channel * 4, in_channel * 4, kernel_size=3, stride=1, padding=0,
+        #               groups=in_channel*4),
+        #     nn.Conv2d(in_channel*4, out_channel //2, kernel_size=1),
+        #     nn.InstanceNorm2d(out_channel//2)
+        # )
         
         self.in_channel = in_channel
         self.out_channel = out_channel

@@ -29,8 +29,8 @@ log_config = dict(
              vis_interval=2000,
              log_checkpoint=True,
              log_checkpoint_metadata=True,
-             init_kwargs=dict(project='ICCV2023_SYREA',
-                              name='restormer_syrea')
+             init_kwargs=dict(project='ICCV2023_UIEB',
+                              name='restormer_uieb')
              )
     ])
 
@@ -52,7 +52,7 @@ runner = dict(type='EpochBasedRunner', max_epochs=100)
 # overwrite dataset config
 # dataset settings
 dataset_type = 'SynBackDataset'
-data_root = './data/synthesis/'
+data_root = './data/uieb/'
 real_dataset_type = 'UWDataset'
 real_root = './data/real/'
 # img_norm_cfg = dict(
